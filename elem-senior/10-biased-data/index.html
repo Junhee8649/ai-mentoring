@@ -1,0 +1,1166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>속지 마! — 10차시 전반부</title>
+<!--
+  초등 고학년 10차시 「치우친 자료가 만든 실수」 전반부 (0~22분)
+    1부 · 말놀이 함정      — 매뉴얼 ① (원래 자료가 없어 새로 만듦)
+    2부 · 전설템 감별사    — 매뉴얼 ② (과일 넘기기 대체)
+
+  설계 원칙 (원본 데모 fruit-opener의 마스터 지시를 계승):
+    · 화면은 멘토의 말을 대신하지 않는다. 결론은 화면이 말하지 않고 멘티가 말한다.
+    · 정답·다음 순서·조작부는 학생 화면에 절대 가지 않는다.
+    · 점수와 순위를 매기지 않는다. 스탬프는 반 전체 공동.
+    · 사람·외모·집단을 소재로 쓰지 않는다. 특정 상표와 캐릭터를 넣지 않는다.
+
+  기술:
+    · 완전 오프라인. 외부 폰트·이미지·스크립트 없음. 카드는 전부 인라인 SVG.
+    · 창 통신은 BroadcastChannel이 아니라 opener + postMessage —
+      file:// 로 열면 origin이 opaque라 BroadcastChannel이 죽기 때문.
+    · 진행은 스페이스바. 멘토가 클릭을 찾지 않아도 되게.
+-->
+<style>
+:root{
+  --ink:#2E2A3A;
+  --paper:#FFFDF7;
+  --bg1:#FFF3D6; --bg2:#FFE2A8;
+  --purple:#7C5CFF; --purple-sh:#563BD1;
+  --green:#2FB877; --green-sh:#1F8B58;
+  --red:#F0523F;   --red-sh:#B93424;
+  --gold:#F0B429;  --gold-deep:#B77F10;
+  --silver:#9AA5B1;--silver-deep:#6B7480;
+  --line:#E4D7B8;
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0;}
+html,body{height:100%;}
+body{
+  font-family:"Jua","Gmarket Sans","Pretendard","Malgun Gothic","맑은 고딕",sans-serif;
+  color:var(--ink);
+  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  overflow:hidden;
+}
+.jua{letter-spacing:.5px;}
+
+/* ══════════ 레이아웃 ══════════ */
+#app{display:flex; height:100vh;}
+#stageWrap{flex:1 1 auto; display:flex; flex-direction:column; min-width:0;}
+#panel{
+  flex:0 0 380px; background:var(--paper); border-left:6px solid var(--line);
+  display:flex; flex-direction:column; overflow-y:auto; padding:16px 18px 22px;
+}
+body.class-view #panel{display:none;}
+body.class-view #stageWrap{flex:1 1 100%;}
+
+/* ══════════ 무대 ══════════ */
+#stage{
+  flex:1 1 auto; display:flex; flex-direction:column;
+  align-items:center; justify-content:center; gap:clamp(14px,2.4vh,28px);
+  padding:clamp(16px,3vh,40px) clamp(16px,3vw,48px); text-align:center; min-height:0;
+}
+.topbar{
+  flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
+  gap:14px; padding:10px 20px; background:rgba(255,253,247,.72);
+  border-bottom:4px solid var(--line);
+}
+.topbar .ttl{font-size:clamp(16px,1.6vw,22px); color:var(--purple-sh);}
+.topbar .dots{display:flex; gap:8px;}
+.topbar .dots i{
+  width:14px; height:14px; border-radius:50%; background:#E4D7B8;
+  display:block; border:2px solid #D2C09A;
+}
+.topbar .dots i.on{background:var(--purple); border-color:var(--purple-sh);}
+
+/* 큰 글자 */
+.huge{font-size:clamp(56px,11vw,180px); line-height:1.05; color:var(--purple-sh);}
+.big{font-size:clamp(30px,4.6vw,72px); line-height:1.2;}
+.mid{font-size:clamp(20px,2.4vw,36px); line-height:1.35; color:#7A6A52;}
+.small{font-size:clamp(15px,1.4vw,22px); color:#9A8A70;}
+
+/* ══════════ 타이틀 ══════════ */
+.game-title{
+  font-size:clamp(64px,13vw,190px); line-height:1; color:var(--red);
+  text-shadow:0 8px 0 var(--red-sh), 0 16px 20px rgba(0,0,0,.16);
+  letter-spacing:6px;
+}
+.card.tilt{transform:rotate(-6deg);}
+
+/* STAGE 커튼 — 크게 때리고 들어온다 */
+.curtain{
+  display:flex; flex-direction:column; align-items:center; gap:clamp(8px,1.8vh,22px);
+  animation:slam .5s cubic-bezier(.2,1.5,.4,1);
+}
+@keyframes slam{
+  0%{transform:scale(2.6); opacity:0}
+  55%{transform:scale(.93); opacity:1}
+  100%{transform:scale(1)}
+}
+.stage-no{
+  background:var(--purple); color:#fff; border-radius:18px;
+  padding:clamp(4px,.8vh,10px) clamp(18px,3vw,44px); letter-spacing:6px;
+  font-size:clamp(20px,2.8vw,46px); box-shadow:0 8px 0 var(--purple-sh);
+}
+.press{
+  font-size:clamp(16px,1.8vw,28px); color:#9A8A70;
+  animation:blink 1.4s ease-in-out infinite; margin-top:clamp(6px,1.6vh,20px);
+}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.28}}
+
+/* 외치기 카드 */
+.chant-box{
+  background:var(--paper); border-radius:36px; padding:clamp(20px,3vh,48px) clamp(32px,6vw,90px);
+  box-shadow:0 14px 0 #E0CFA6, inset 0 0 0 6px #fff;
+  display:flex; flex-direction:column; align-items:center; gap:clamp(6px,1.2vh,16px);
+}
+.chant-icon{width:clamp(74px,9vw,150px);}
+.chant-icon svg{width:100%; height:auto; display:block;}
+
+/* 공개 — 외친 것과 정답을 나란히 */
+.face-off{display:flex; align-items:center; gap:clamp(14px,3vw,50px); flex-wrap:wrap; justify-content:center;}
+.face-off .side{
+  background:var(--paper); border-radius:28px; border:6px solid #fff;
+  padding:clamp(12px,2vh,24px) clamp(18px,2.6vw,40px); box-shadow:0 10px 0 #DFCEA5;
+  display:flex; flex-direction:column; align-items:center; gap:6px;
+  min-width:clamp(130px,15vw,230px);
+}
+.face-off .side.wrong{opacity:.62;}
+.face-off .side.right{border-color:var(--green); box-shadow:0 10px 0 var(--green-sh);}
+.face-off .nm{font-size:clamp(26px,3.4vw,56px); line-height:1.1;}
+.face-off .side.right .nm{color:var(--green-sh);}
+.face-off .cap{font-size:clamp(13px,1.3vw,20px); color:#9A8A70;}
+.face-off .vs{font-size:clamp(28px,3.4vw,56px); color:#C4B292;}
+.counter{display:flex; gap:clamp(6px,.9vw,14px); flex-wrap:wrap; justify-content:center;}
+.counter i{
+  width:clamp(22px,2.6vw,40px); height:clamp(22px,2.6vw,40px); border-radius:50%;
+  background:#EFE3C6; border:4px solid #DCC99F; display:block; transition:transform .12s;
+}
+.counter i.on{background:var(--green); border-color:var(--green-sh); transform:scale(1.12);}
+.counter i.new{animation:dotpop .3s ease;}
+@keyframes dotpop{0%{transform:scale(.3)}60%{transform:scale(1.5)}100%{transform:scale(1.12)}}
+.count-num{font-size:clamp(26px,3vw,46px); color:var(--green-sh);}
+
+/* 함정 질문 */
+.alarm{font-size:clamp(40px,6vw,90px); animation:shake .5s ease;}
+@keyframes shake{0%,100%{transform:none}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+.qbox{
+  background:var(--red); color:#fff; border-radius:36px;
+  padding:clamp(26px,5vh,64px) clamp(30px,6vw,90px); box-shadow:0 14px 0 var(--red-sh);
+}
+
+/* 공개 */
+.answer{color:var(--green-sh);}
+.evidence{
+  background:#FFF6E0; border:4px dashed #E0C88A; border-radius:22px;
+  padding:12px 26px; font-size:clamp(16px,1.8vw,28px); color:#8A7550;
+}
+.evidence b{color:var(--red-sh);}
+
+/* ══════════ 2부 카드 ══════════ */
+.card{
+  width:clamp(120px,13vw,190px); flex:0 0 auto;
+  background:var(--paper); border-radius:24px; padding:10px 10px 8px;
+  box-shadow:0 8px 0 #DFCEA5; border:6px solid #ccc; transition:transform .55s cubic-bezier(.2,.8,.3,1), box-shadow .2s;
+}
+.card.gold{border-color:var(--gold); box-shadow:0 8px 0 var(--gold-deep);}
+.card.silver{border-color:var(--silver); box-shadow:0 8px 0 var(--silver-deep);}
+.card svg{width:100%; height:auto; display:block;}
+/* 별은 카드 테두리 색과 무관한 중립색으로 — 색과 별이 시각적으로 얽히면
+   "금색이라서 별이 많아 보인다"가 되어 두 특징을 갈라 볼 수 없게 된다. */
+.card .stars{font-size:clamp(15px,1.7vw,26px); letter-spacing:3px; color:#8A7550; margin-top:2px; min-height:1.2em;}
+.card.big-one{width:clamp(180px,20vw,300px);}
+.card.dim{opacity:.34;}
+.card.hot{animation:pop .45s ease;}
+@keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
+
+.label-tag{
+  display:inline-block; border-radius:20px; padding:clamp(8px,1.2vh,16px) clamp(18px,2.4vw,36px);
+  font-size:clamp(20px,2.6vw,42px); color:#fff;
+}
+.label-tag.legend{background:var(--gold); box-shadow:0 8px 0 var(--gold-deep);}
+.label-tag.normal{background:var(--silver); box-shadow:0 8px 0 var(--silver-deep);}
+.label-tag.ask{background:var(--purple); box-shadow:0 8px 0 var(--purple-sh);}
+
+.shelf{
+  display:flex; gap:clamp(6px,.8vw,14px); justify-content:center; align-items:center;
+  flex-wrap:wrap; background:rgba(255,253,247,.6); border-radius:20px; padding:10px 16px;
+}
+.shelf .mini{
+  width:clamp(46px,4.6vw,72px); border-radius:12px; border:4px solid #ccc;
+  background:var(--paper); padding:3px; text-align:center;
+}
+.shelf .mini.gold{border-color:var(--gold);}
+.shelf .mini.silver{border-color:var(--silver);}
+.shelf .mini svg{width:100%; height:auto;}
+.shelf .mini .st{font-size:clamp(9px,.85vw,13px); color:#8A7550; letter-spacing:1px; min-height:1.1em;}
+.shelf-title{font-size:clamp(14px,1.3vw,20px); color:#9A8A70;}
+
+/* R3 재정렬 보드 */
+.board{display:flex; flex-direction:column; gap:clamp(10px,1.8vh,26px); width:100%; max-width:1100px;}
+.board .row{
+  display:flex; align-items:center; gap:clamp(8px,1.2vw,20px);
+  background:rgba(255,253,247,.55); border-radius:24px; padding:clamp(8px,1.2vh,16px) clamp(10px,1.4vw,22px);
+}
+.board .row .key{
+  flex:0 0 auto; width:clamp(80px,9vw,150px); font-size:clamp(17px,1.9vw,30px);
+  color:var(--purple-sh); text-align:left;
+}
+.board .row .cards{display:flex; gap:clamp(6px,.9vw,16px); flex-wrap:wrap;}
+.board .row.hit{outline:6px solid var(--green); outline-offset:4px;}
+
+/* 후보 고르기 */
+.picker{display:flex; gap:clamp(8px,1.2vw,20px); justify-content:center; flex-wrap:wrap;}
+.pick{cursor:pointer; position:relative;}
+body.class-view .pick{cursor:default; pointer-events:none;}
+.pick.taken{opacity:.3;}
+.pick .add{
+  position:absolute; right:-6px; top:-6px; width:30px; height:30px; border-radius:50%;
+  background:var(--green); color:#fff; font-size:19px; line-height:30px; box-shadow:0 4px 0 var(--green-sh);
+}
+.pick.taken .add{background:var(--silver); box-shadow:0 4px 0 var(--silver-deep);}
+
+/* ══════════ 멘토 패널 ══════════ */
+#panel h3{
+  font-size:13px; color:#A8987C; letter-spacing:2px; margin:16px 0 8px;
+  border-bottom:3px solid var(--line); padding-bottom:5px;
+}
+#panel h3:first-of-type{margin-top:6px;}
+.panel-head{display:flex; gap:8px; flex-wrap:wrap;}
+.pbtn{
+  font-family:inherit; font-size:15px; border:none; cursor:pointer; border-radius:14px;
+  padding:9px 15px; background:#EFEAFF; color:var(--purple-sh); box-shadow:0 4px 0 #D6CCFF;
+}
+.pbtn:active{transform:translateY(3px); box-shadow:0 1px 0 #D6CCFF;}
+.pbtn.go{background:var(--green); color:#fff; box-shadow:0 4px 0 var(--green-sh);}
+.pbtn.warn{background:#FFE7E2; color:var(--red-sh); box-shadow:0 4px 0 #FFC9BE;}
+/* 시계 — 40분 수업에서 페이스가 제일 어렵다. 경과와 목표 구간을 같이 본다. */
+.clock{
+  display:flex; align-items:baseline; gap:10px; margin:10px 0 2px;
+  background:#F3F0FF; border-radius:14px; padding:9px 14px;
+}
+.clock .el{font-size:30px; color:var(--purple-sh); line-height:1;}
+.clock .tg{font-size:13px; color:#9A8A70; line-height:1.4;}
+.clock.late{background:#FFE9E4;}
+.clock.late .el{color:var(--red-sh);}
+.clock.idle .el{opacity:.35;}
+
+.dont{
+  background:#FFF0EC; border-left:5px solid var(--red); border-radius:9px;
+  padding:9px 12px; font-size:15px; line-height:1.55; color:#8C3A2C;
+}
+.oops{list-style:none; display:flex; flex-direction:column; gap:7px;}
+.oops li{
+  background:#FFF8E8; border-left:5px solid var(--gold); border-radius:9px;
+  padding:8px 11px; font-size:14.5px; line-height:1.5; color:#7A5F1E;
+}
+.oops li b{color:#5C4610;}
+
+.now-step{font-size:22px; color:var(--purple-sh); line-height:1.3;}
+.now-sub{font-size:14px; color:#9A8A70; margin-top:3px;}
+.note{font-size:15px; line-height:1.6; color:#5C5470;}
+.note b{color:var(--red-sh);}
+.says{list-style:none; display:flex; flex-direction:column; gap:7px;}
+.says li{
+  background:#F3F8F4; border-left:5px solid var(--green); border-radius:9px;
+  padding:8px 11px; font-size:15px; line-height:1.5; color:#38584A;
+}
+.answer-box{
+  background:#FFF3E4; border:3px solid var(--gold); border-radius:12px;
+  padding:9px 12px; font-size:16px; color:var(--gold-deep);
+}
+.meter{margin-top:6px;}
+.meter .bar{height:14px; border-radius:8px; background:#EFE3C6; overflow:hidden; border:2px solid #DCC99F;}
+.meter .bar i{display:block; height:100%; background:var(--red); transition:width .4s;}
+.meter .cap{font-size:13px; color:#9A8A70; margin-top:4px; line-height:1.45;}
+.meter.safe .bar i{background:var(--green);}
+kbd{
+  background:#fff; border:2px solid #D9CDAF; border-bottom-width:4px; border-radius:7px;
+  padding:1px 7px; font-family:inherit; font-size:13px;
+}
+.hint-line{font-size:13px; color:#A8987C; line-height:1.6; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div id="stageWrap">
+    <div class="topbar">
+      <span class="ttl jua" id="barTitle"></span>
+      <span class="dots" id="barDots"></span>
+    </div>
+    <div id="stage"></div>
+  </div>
+
+  <aside id="panel">
+    <div class="panel-head">
+      <button class="pbtn go" id="btnClass">🖥 학생 화면 열기</button>
+      <button class="pbtn" id="btnPrev">← 이전</button>
+      <button class="pbtn" id="btnNext">다음 →</button>
+      <button class="pbtn warn" id="btnReset">처음부터</button>
+    </div>
+
+    <div class="clock" id="pClock">
+      <div class="el" id="pElapsed">00:00</div>
+      <div class="tg" id="pTarget"></div>
+    </div>
+
+    <h3>지금</h3>
+    <div class="now-step" id="pNow"></div>
+    <div class="now-sub" id="pNowSub"></div>
+
+    <h3>다음에 일어날 일</h3>
+    <div class="note" id="pNext"></div>
+
+    <h3>정답 / 진행 메모</h3>
+    <div class="answer-box" id="pAnswer"></div>
+
+    <h3>던질 말</h3>
+    <ul class="says" id="pSays"></ul>
+
+    <div id="pDontWrap">
+      <h3>⛔ 하지 말 것</h3>
+      <div class="dont" id="pDont"></div>
+    </div>
+
+    <div id="pOopsWrap">
+      <h3>아이가 이러면</h3>
+      <ul class="oops" id="pOops"></ul>
+    </div>
+
+    <div id="pMeterWrap" style="display:none">
+      <h3>함정 상태</h3>
+      <div class="meter" id="pMeter">
+        <div class="bar"><i></i></div>
+        <div class="cap"></div>
+      </div>
+    </div>
+
+    <div class="hint-line">
+      <kbd>Space</kbd> 다음 · <kbd>←</kbd> 이전<br>
+      학생 창을 TV로 끌어 전체화면(F11)으로 두세요.<br>
+      화면 복제가 아니라 <b>확장</b>이어야 이 패널이 아이들에게 안 보입니다.
+    </div>
+  </aside>
+</div>
+
+<script>
+"use strict";
+
+/* ════════════════════════════════════════════════════════════
+   0. 창 역할
+   ════════════════════════════════════════════════════════════ */
+const IS_CLASS = new URLSearchParams(location.search).get("view") === "class";
+if (IS_CLASS) {
+  document.body.classList.add("class-view");
+  document.title = "속지 마! — 수업 화면";
+}
+let classWin = null;
+
+/* ════════════════════════════════════════════════════════════
+   1. 1부 데이터 — 말놀이 함정
+   문제를 빼고 넣기 쉽게 배열로 둔다. 소재는 색·사물·동물만.
+   'why'는 멘토 패널에만 보인다(왜 걸리는지). 화면엔 절대 안 나간다.
+   ════════════════════════════════════════════════════════════ */
+/* 문제를 새로 넣을 때 지켜야 하는 규칙이 둘 있다.
+
+   ① 반복한 단어가 곧 오답이어야 한다.
+      화면 아래에 `"노란색" × 10` 이 증거로 남는데, 반복한 말과 오답이 다르면
+      그 증거가 아무것도 설명하지 못한다. 이 앱의 핵심 장치가 헛돈다.
+      (예: '실크 ×5 → 소가 마시는 것은?(물)'을 넣었다가 뺐다. 오답이 '우유'라
+       열 번 외친 말과 다르고, 실크↔밀크를 거치는 두 단계짜리라 순간에 안 걸린다.)
+
+   ② 정답은 5·6학년이 100% 아는 것이어야 한다.
+      모르면 함정이 아니라 그냥 퀴즈다.                                        */
+/* 소재를 고를 때 한 가지 더:
+   유치해 보이는 건 '어려운가'가 아니라 '뭘 묻는가'다.
+   "소방차는 무슨 색?"은 유치원 느낌이고 "가장 높은 산은?"은 아니다.
+   둘 다 5·6학년이 100% 안다. 난이도는 그대로 두고 소재만 올린다.       */
+const CHANTS = [
+  { word:"노란색", times:10, q:"신호등에서 건너도 되는 색은?",   a:"초록색", wrong:"노란색",
+    icon:"dotY", aicon:"dotG",
+    why:"제일 확실하게 걸리는 고전. 워밍업으로 첫 번째에 둔다." },
+  { word:"젓가락", times:10, q:"국 먹을 때 쓰는 것은?",          a:"숟가락", wrong:"젓가락",
+    icon:"chop", aicon:"spoon",
+    why:"같은 서랍의 물건이라 방금 말한 쪽이 먼저 나온다." },
+  { word:"한라산", times:10, q:"우리나라에서 가장 높은 산은?",   a:"백두산", wrong:"한라산",
+    icon:"mtn",  aicon:"mtnTop",
+    why:"둘 다 아는 이름이라 지식이 아니라 순서 싸움이 된다." },
+  { word:"금성",   times:10, q:"태양에서 가장 가까운 행성은?",   a:"수성",   wrong:"금성",
+    icon:"venus", aicon:"mercury",
+    why:"수금지화목토천해를 배운 반이면 걸린다. 안 배웠으면 건너뛴다." },
+];
+/* 예비 (더 쉬운 쪽이 필요하면)
+   { word:"파란색", times:10, q:"소방차는 무슨 색?",         a:"빨간색", wrong:"파란색" }
+   { word:"연필",   times:10, q:"글씨 틀렸을 때 쓰는 것은?", a:"지우개", wrong:"연필"   }
+   { word:"까마귀", times:10, q:"우리나라 나라새는?",        a:"까치",   wrong:"까마귀" }  */
+
+/* 1부 그림 — 2부 카드와 같은 손맛. 외부 이미지 없이 전부 인라인 SVG. */
+const CHANT_GLYPH = {
+  dotY:`<circle cx="50" cy="50" r="36" fill="#FFD93D" stroke="#C9A21A" stroke-width="7"/>`,
+  dotG:`<circle cx="50" cy="50" r="36" fill="#5FD79B" stroke="#1F8B58" stroke-width="7"/>`,
+  chop:`<rect x="30" y="8" width="9" height="84" rx="4" transform="rotate(-9 34 50)"
+         fill="#D9A45B" stroke="#8A6A44" stroke-width="5"/>
+        <rect x="61" y="8" width="9" height="84" rx="4" transform="rotate(9 65 50)"
+         fill="#D9A45B" stroke="#8A6A44" stroke-width="5"/>`,
+  spoon:`<ellipse cx="50" cy="30" rx="22" ry="26" fill="#D9E3EC" stroke="#7C8C9E" stroke-width="6"/>
+         <rect x="44" y="52" width="12" height="42" rx="6" fill="#D9E3EC" stroke="#7C8C9E" stroke-width="6"/>`,
+  mtn:`<polygon points="50,14 92,88 8,88" fill="#8FB56F" stroke="#4E7238" stroke-width="6" stroke-linejoin="round"/>
+       <polygon points="50,14 66,42 34,42" fill="#E8F0DC"/>`,
+  mtnTop:`<polygon points="50,10 94,88 6,88" fill="#7FA9C9" stroke="#3E6B8C" stroke-width="6" stroke-linejoin="round"/>
+          <polygon points="50,10 70,40 30,40" fill="#EDF4FA"/>
+          <ellipse cx="50" cy="38" rx="17" ry="7" fill="#3FA9E0" stroke="#1E6E9E" stroke-width="4"/>`,
+  venus:`<circle cx="50" cy="50" r="36" fill="#F0B429" stroke="#B77F10" stroke-width="7"/>
+         <path d="M22 40 H74 M28 58 H80" stroke="#D89A15" stroke-width="7" stroke-linecap="round"/>`,
+  mercury:`<circle cx="50" cy="54" r="24" fill="#B6BEC7" stroke="#6B7480" stroke-width="7"/>
+           <circle cx="43" cy="47" r="5" fill="#939CA6"/><circle cx="57" cy="61" r="4" fill="#939CA6"/>`,
+};
+const glyphHTML = k => k && CHANT_GLYPH[k]
+  ? `<div class="chant-icon"><svg viewBox="0 0 100 100" aria-hidden="true">${CHANT_GLYPH[k]}</svg></div>` : "";
+
+/* ════════════════════════════════════════════════════════════
+   2. ２부 데이터 — 전설템 감별사
+
+   진짜 규칙은 오직 하나:  ★ 3개면 전설템.
+   훈련 세트에서는 색(금/은)과 별(3/1)을 100% 붙여 둔다.
+   아이는 더 눈에 띄는 '색'을 기준으로 배운다 → 은★3에서 틀린다.
+   아이템 모양은 일부러 전부 다르게 둔다(의미 없는 잡음 역할).
+   ════════════════════════════════════════════════════════════ */
+const RULE_STARS = 3;
+const isLegend = c => c.stars >= RULE_STARS;
+
+const TRAIN = [
+  { id:"t1", shape:"sword",  color:"gold",   stars:3 },
+  { id:"t2", shape:"potion", color:"silver", stars:1 },
+  { id:"t3", shape:"crown",  color:"gold",   stars:3 },
+  { id:"t4", shape:"key",    color:"silver", stars:1 },
+  { id:"t5", shape:"gem",    color:"gold",   stars:3 },
+  { id:"t6", shape:"shield", color:"silver", stars:1 },
+];
+/* R2 시험 카드 — 은색인데 별 3개. 색으로 배웠으면 틀린다. */
+const TEST_A = { id:"x1", shape:"ring", color:"silver", stars:3 };
+/* R4 시험 카드 — 금색인데 별 1개. 대칭으로 한 번 더 확인한다. */
+const TEST_B = { id:"x2", shape:"bow",  color:"gold",   stars:1 };
+
+/* R4 후보 — 앞 둘이 색과 별을 갈라놓는 카드다. */
+const CANDIDATES = [
+  { id:"c1", shape:"gem",    color:"gold",   stars:1, breaks:true  },
+  { id:"c2", shape:"sword",  color:"silver", stars:3, breaks:true  },
+  { id:"c3", shape:"crown",  color:"gold",   stars:2, breaks:true  },
+  { id:"c4", shape:"potion", color:"silver", stars:2, breaks:true  },
+  { id:"c5", shape:"key",    color:"gold",   stars:3, breaks:false },
+  { id:"c6", shape:"shield", color:"silver", stars:1, breaks:false },
+];
+
+/* ════════════════════════════════════════════════════════════
+   3. 아이템 그림 — 전부 인라인 SVG. 외부 이미지 파일 0개.
+   특정 상표나 캐릭터를 쓰지 않는 자체 도형이다.
+   ════════════════════════════════════════════════════════════ */
+const GLYPH = {
+  sword:`<polygon points="50,8 62,26 62,74 38,74 38,26" fill="#C9D6E4" stroke="#7C8C9E" stroke-width="4"/>
+         <rect x="26" y="74" width="48" height="11" rx="5" fill="#8A6A44" stroke="#5E4526" stroke-width="4"/>
+         <rect x="44" y="85" width="12" height="24" rx="5" fill="#A8814F" stroke="#5E4526" stroke-width="4"/>`,
+  shield:`<path d="M50 10 L84 24 V62 Q84 92 50 108 Q16 92 16 62 V24 Z"
+          fill="#BFD4EA" stroke="#5C7492" stroke-width="5"/>
+          <path d="M50 28 L68 36 V62 Q68 80 50 90 Q32 80 32 62 V36 Z" fill="#8FB4DC"/>`,
+  potion:`<rect x="41" y="10" width="18" height="18" rx="3" fill="#C7B79A" stroke="#7E6C4C" stroke-width="4"/>
+          <path d="M36 28 H64 L78 62 Q84 100 50 100 Q16 100 22 62 Z"
+          fill="#D8F0FF" stroke="#5C7492" stroke-width="5"/>
+          <path d="M27 62 Q22 92 50 92 Q78 92 73 62 Z" fill="#7ED0A8"/>`,
+  gem:`<polygon points="50,8 88,42 50,108 12,42" fill="#9BE4F5" stroke="#3E86A0" stroke-width="5"/>
+       <polygon points="50,8 68,42 50,108 32,42" fill="#CFF4FC"/>
+       <line x1="12" y1="42" x2="88" y2="42" stroke="#3E86A0" stroke-width="5"/>`,
+  crown:`<path d="M16 84 L24 28 L42 54 L50 18 L58 54 L76 28 L84 84 Z"
+         fill="#FFE07A" stroke="#B78A16" stroke-width="5" stroke-linejoin="round"/>
+         <rect x="16" y="84" width="68" height="16" rx="6" fill="#FFCF45" stroke="#B78A16" stroke-width="5"/>`,
+  key:`<circle cx="50" cy="32" r="21" fill="none" stroke="#C9A227" stroke-width="11"/>
+       <rect x="44" y="50" width="12" height="56" rx="4" fill="#E0BC4A" stroke="#9E7C14" stroke-width="4"/>
+       <rect x="56" y="76" width="18" height="10" rx="3" fill="#E0BC4A" stroke="#9E7C14" stroke-width="4"/>
+       <rect x="56" y="94" width="14" height="10" rx="3" fill="#E0BC4A" stroke="#9E7C14" stroke-width="4"/>`,
+  ring:`<circle cx="50" cy="70" r="30" fill="none" stroke="#E7C356" stroke-width="12"/>
+        <circle cx="50" cy="70" r="30" fill="none" stroke="#A8850F" stroke-width="4"/>
+        <polygon points="50,10 66,30 50,48 34,30" fill="#B7E7FF" stroke="#3E86A0" stroke-width="4"/>`,
+  bow:`<path d="M30 12 Q78 60 30 108" fill="none" stroke="#8A6A44" stroke-width="10" stroke-linecap="round"/>
+       <line x1="30" y1="12" x2="30" y2="108" stroke="#D8CBB0" stroke-width="4"/>
+       <line x1="30" y1="60" x2="80" y2="60" stroke="#C9B48C" stroke-width="6" stroke-linecap="round"/>`,
+};
+
+function cardSVG(c){
+  return `<svg viewBox="0 0 100 120" aria-hidden="true">${GLYPH[c.shape]||""}</svg>`;
+}
+/* 채워진 별만 그린다. 빈 칸(☆)까지 그리면 개수가 너무 눈에 띄어
+   아이들이 처음부터 별을 세어 버린다 — 함정이 걸리지 않는다. */
+function starStr(n){ return "★".repeat(n); }
+
+function cardHTML(c, cls){
+  return `<div class="card ${c.color} ${cls||""}" data-id="${c.id}">
+    ${cardSVG(c)}<div class="stars">${starStr(c.stars)}</div>
+  </div>`;
+}
+function miniHTML(c){
+  return `<div class="mini ${c.color}">${cardSVG(c)}<div class="st">${starStr(c.stars)}</div></div>`;
+}
+
+/* ════════════════════════════════════════════════════════════
+   4. 상태
+   ════════════════════════════════════════════════════════════ */
+function freshState(){
+  return {
+    part: 0,          // 0 표지 / 1 말놀이 / 2 전설템 / 3 마무리
+    curtain: false,   // 각 부 첫머리의 STAGE 커튼. 전환에 박자를 준다
+    // 1부
+    ci: 0,            // 몇 번째 말놀이
+    cphase: "chant",  // chant | question | reveal
+    count: 0,
+    // 2부
+    round: 1,         // 1 훈련 / 2 판정 / 3 반전 / 4 고치기
+    trainIdx: 0,      // 훈련에서 지금 보여 준 카드 수 (0 = 아직 없음)
+    revealed: false,  // R2 정답 공개 여부
+    sortBy: "color",  // R3 정렬 기준 color → star
+    picked: [],       // R4에서 추가한 후보 id
+    fixTested: false, // R4 재판정 카드 등장 여부
+    fixRevealed: false,
+  };
+}
+let S = freshState();
+
+/* ════════════════════════════════════════════════════════════
+   5. 진행 — 스페이스 하나로 앞으로, ←로 뒤로
+   ════════════════════════════════════════════════════════════ */
+function next(){
+  if (S.curtain){ S.curtain = false; return; }   // 커튼 → 본 내용
+
+  if (S.part === 0){ S.part = 1; S.curtain = true; S.ci = 0; S.cphase = "chant"; S.count = 0; return; }
+
+  if (S.part === 1){
+    const c = CHANTS[S.ci];
+    if (S.cphase === "chant"){
+      if (S.count < c.times) { S.count++; return; }
+      S.cphase = "question"; return;
+    }
+    if (S.cphase === "question"){ S.cphase = "reveal"; return; }
+    // reveal → 다음 문제 or 2부
+    if (S.ci < CHANTS.length - 1){ S.ci++; S.cphase = "chant"; S.count = 0; return; }
+    S.part = 2; S.curtain = true; S.round = 1; S.trainIdx = 0; return;
+  }
+
+  if (S.part === 2){
+    if (S.round === 1){
+      if (S.trainIdx < TRAIN.length){ S.trainIdx++; return; }
+      S.round = 2; S.revealed = false; return;
+    }
+    if (S.round === 2){
+      if (!S.revealed){ S.revealed = true; return; }
+      S.round = 3; S.sortBy = "color"; return;
+    }
+    if (S.round === 3){
+      if (S.sortBy === "color"){ S.sortBy = "star"; return; }
+      S.round = 4; return;
+    }
+    if (S.round === 4){
+      if (!S.fixTested){ S.fixTested = true; return; }
+      if (!S.fixRevealed){ S.fixRevealed = true; return; }
+      S.part = 3; return;
+    }
+  }
+}
+
+function prev(){
+  if (S.part === 3){ S.part = 2; S.round = 4; S.fixTested = true; S.fixRevealed = true; return; }
+
+  if (S.curtain){                                  // 커튼 → 앞 부의 마지막 화면
+    S.curtain = false;
+    if (S.part === 2){ S.part = 1; S.ci = CHANTS.length - 1; S.cphase = "reveal"; }
+    else S.part = 0;
+    return;
+  }
+
+  if (S.part === 2){
+    if (S.round === 1 && S.trainIdx === 0){ S.curtain = true; return; }
+    if (S.round === 4){
+      if (S.fixRevealed){ S.fixRevealed = false; return; }
+      if (S.fixTested){ S.fixTested = false; return; }
+      S.round = 3; S.sortBy = "star"; return;
+    }
+    if (S.round === 3){
+      if (S.sortBy === "star"){ S.sortBy = "color"; return; }
+      S.round = 2; S.revealed = true; return;
+    }
+    if (S.round === 2){
+      if (S.revealed){ S.revealed = false; return; }
+      S.round = 1; S.trainIdx = TRAIN.length; return;
+    }
+    if (S.round === 1 && S.trainIdx > 0){ S.trainIdx--; return; }
+  }
+
+  if (S.part === 1){
+    const c = CHANTS[S.ci];
+    if (S.cphase === "reveal"){ S.cphase = "question"; return; }
+    if (S.cphase === "question"){ S.cphase = "chant"; S.count = c.times; return; }
+    if (S.count > 0){ S.count--; return; }
+    if (S.ci > 0){ S.ci--; S.cphase = "reveal"; return; }
+    S.curtain = true; return;
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   6. 무대 그리기 — 멘토 창과 학생 창이 같은 함수를 쓴다.
+   학생 화면에는 정답·다음 순서·조작 설명이 절대 들어가지 않는다.
+   ════════════════════════════════════════════════════════════ */
+const $ = s => document.querySelector(s);
+const stage = $("#stage");
+let lastKey = "";   // R3 재정렬을 애니메이션으로 보이려면 DOM을 갈아엎지 않아야 한다
+
+function shelfCards(){
+  return TRAIN.concat(S.picked.map(id => CANDIDATES.find(c => c.id === id)));
+}
+
+function renderStage(){
+  const key = stageKey();
+
+  // R3 정렬만 바뀐 경우엔 DOM을 유지하고 자리만 옮긴다(움직임이 보여야 한다)
+  if (key === lastKey){ patchSort(); return; }
+  lastKey = key;
+  stage.innerHTML = stageHTML();
+  bindPicker();
+}
+
+function stageKey(){
+  if (S.curtain) return "curtain" + S.part;
+  if (S.part === 3) return "end";
+  if (S.part === 0) return "title";
+  if (S.part === 1) return `c${S.ci}:${S.cphase}:${S.count}`;
+  if (S.round === 3) return "r3";                       // 정렬 상태는 키에 넣지 않는다
+  if (S.round === 4) return `r4:${S.picked.length}:${S.fixTested}:${S.fixRevealed}`;
+  if (S.round === 2) return `r2:${S.revealed}`;
+  return `r1:${S.trainIdx}`;
+}
+
+function stageHTML(){
+  // STAGE 커튼 — 부와 부 사이에 박자를 준다.
+  // 여기서 분위기가 한 번 끊겨야 다음 활동이 '새 게임'으로 시작한다.
+  if (S.curtain){
+    const t = S.part === 1
+      ? { no:"STAGE 1", nm:"말놀이 함정" }
+      : { no:"STAGE 2", nm:"전설템 감별사" };
+    return `
+      <div class="curtain">
+        <div class="stage-no jua">${t.no}</div>
+        <div class="game-title jua">${t.nm}</div>
+      </div>`;
+  }
+
+  // 목차는 두지 않는다. 게임 시작 화면에 목차가 있는 경우는 없고,
+  // "속지 마!"는 이름이 아니라 아이들한테 거는 말이다 — 경계하고 들어가야
+  // 속았을 때 세게 먹힌다. 그게 이 활동의 전부다.
+  if (S.part === 0) return `
+    ${cardHTML({ id:"title", shape:"crown", color:"gold", stars:3 }, "big-one tilt")}
+    <div class="game-title jua">속지 마!</div>
+    <div class="press jua">▶ 스페이스를 눌러 시작</div>`;
+
+  // 마무리 화면도 답을 말하지 않는다.
+  // 1부와 2부에서 '우리가 받은 것' 둘을 나란히 놓기만 하면
+  // 공통점은 아이가 찾는다. 화면은 질문에서 멈춘다.
+  if (S.part === 3){
+    const golds = TRAIN.filter(c => c.color === "gold");
+    return `
+      <div class="big jua">우리가 왜 틀렸을까?</div>
+      <div class="face-off">
+        <div class="side wrong">
+          ${glyphHTML("dotY")}
+          <div class="cap">1부 · 우리가 외친 것</div>
+        </div>
+        <div class="side wrong">
+          <div class="shelf">${golds.map(miniHTML).join("")}</div>
+          <div class="cap">2부 · 우리가 본 것</div>
+        </div>
+      </div>
+      <div class="game-title jua" style="font-size:clamp(38px,7vw,110px)">그럼 기계는?</div>`;
+  }
+
+  if (S.part === 1) return chantHTML();
+  return part2HTML();
+}
+
+/* ── 1부 ── */
+function chantHTML(){
+  const c = CHANTS[S.ci];
+
+  if (S.cphase === "chant"){
+    let dots = "";
+    for (let i = 0; i < c.times; i++){
+      const on = i < S.count;
+      dots += `<i class="${on ? "on" : ""}${on && i === S.count - 1 ? " new" : ""}"></i>`;
+    }
+    return `
+      <div class="mid">다 같이 ${c.times}번!</div>
+      <div class="chant-box">
+        ${glyphHTML(c.icon)}
+        <div class="huge jua">${c.word}</div>
+      </div>
+      <div class="counter">${dots}</div>
+      <div class="count-num jua">${S.count} / ${c.times}</div>`;
+  }
+
+  if (S.cphase === "question"){
+    return `
+      <div class="alarm">🚨</div>
+      <div class="qbox"><div class="big jua">${c.q}</div></div>`;
+  }
+
+  // reveal — 화면은 두 장만 나란히 놓는다.
+  // "우리도 속았다"는 화면이 아니라 멘토가 할 말이고,
+  // 반복 횟수는 따로 상자를 만들지 않고 카드 설명에 넣는다(원인이라 숫자는 남긴다).
+  return `
+    <div class="face-off">
+      <div class="side wrong">
+        ${glyphHTML(c.icon)}
+        <div class="nm jua">${c.word}</div>
+        <div class="cap">${c.times}번 외친 것</div>
+      </div>
+      <div class="vs jua">→</div>
+      <div class="side right">
+        ${glyphHTML(c.aicon)}
+        <div class="nm jua">${c.a}</div>
+        <div class="cap">정답</div>
+      </div>
+    </div>`;
+}
+
+/* ── 2부 ── */
+function part2HTML(){
+  if (S.round === 1) return r1HTML();
+  if (S.round === 2) return r2HTML();
+  if (S.round === 3) return r3HTML();
+  return r4HTML();
+}
+
+function shelfStrip(list, title){
+  if (!list.length) return "";
+  return `<div class="shelf-title">${title}</div>
+          <div class="shelf">${list.map(miniHTML).join("")}</div>`;
+}
+
+function r1HTML(){
+  if (S.trainIdx === 0) return `
+    <div class="big jua" style="color:var(--purple-sh)">전설템 감별사</div>
+    <div class="mid">이 상자에서 나온 걸 보고<br>어떤 게 전설템인지 알아맞혀 봐요</div>
+    <div class="small">먼저 여섯 개를 보여 줄게요</div>`;
+
+  const c = TRAIN[S.trainIdx - 1];
+  const seen = TRAIN.slice(0, S.trainIdx - 1);
+  return `
+    <div class="mid">${S.trainIdx} / ${TRAIN.length}</div>
+    ${cardHTML(c, "big-one hot")}
+    <div class="label-tag ${isLegend(c) ? "legend" : "normal"} jua">
+      ${isLegend(c) ? "전설템" : "일반템"}
+    </div>
+    ${shelfStrip(seen, "지금까지 본 것")}`;
+}
+
+function r2HTML(){
+  if (!S.revealed) return `
+    <div class="mid">새로 나온 거예요</div>
+    ${cardHTML(TEST_A, "big-one hot")}
+    <div class="label-tag ask jua">전설템일까? 아닐까?</div>
+    <div class="mid">✋ 다 같이!</div>
+    ${shelfStrip(TRAIN, "지금까지 본 것")}`;
+
+  return `
+    ${cardHTML(TEST_A, "big-one")}
+    <div class="label-tag legend jua">전설템 맞음!</div>
+    ${shelfStrip(TRAIN, "지금까지 본 것")}`;
+}
+
+/* R3 — 이 활동의 심장.
+   금/은으로 갈라져 있던 카드가 별 개수로 다시 줄을 선다. */
+function r3HTML(){
+  const all = TRAIN.concat([TEST_A]);
+  const rowsColor = [
+    { key:"금색", list: all.filter(c => c.color === "gold") },
+    { key:"은색", list: all.filter(c => c.color === "silver") },
+  ];
+  const rowsStar = [
+    { key:"★ 3개", list: all.filter(c => c.stars === 3), hit:true },
+    { key:"★ 1개", list: all.filter(c => c.stars === 1) },
+  ];
+  const rows = S.sortBy === "color" ? rowsColor : rowsStar;
+
+  return `
+    <div class="big jua" style="color:var(--purple-sh)">
+      ${S.sortBy === "color" ? "색으로 줄을 세우면" : "별로 줄을 세우면"}
+    </div>
+    <div class="board" id="board">
+      ${rows.map(r => `
+        <div class="row ${r.hit ? "hit" : ""}">
+          <div class="key jua">${r.key}</div>
+          <div class="cards">${r.list.map(c => cardHTML(c)).join("")}</div>
+        </div>`).join("")}
+    </div>
+    ${S.sortBy === "star"
+      ? `<div class="evidence">진짜 기준은 <b>★ 개수</b>였어요</div>`
+      : `<div class="small">깔끔하게 갈리네요?</div>`}`;
+}
+
+/* R3 정렬 전환 — FLIP.
+   카드가 새 자리로 '옮겨 가는 것'이 보여야 한다. 그게 이 장면의 전부다.
+   옛 위치를 재고 → 새로 그리고 → 옛 자리에서 새 자리로 애니메이션.
+
+   CSS transition + requestAnimationFrame 조합은 rAF가 스타일 재계산보다
+   먼저 돌면 트랜지션이 통째로 건너뛰어진다(카드가 툭 바뀐다).
+   Web Animations API는 타이밍에 기대지 않으므로 그 실패가 없다. */
+function patchSort(){
+  if (S.round !== 3) return;
+
+  const before = new Map();
+  stage.querySelectorAll(".card[data-id]").forEach(el => {
+    before.set(el.dataset.id, el.getBoundingClientRect());
+  });
+
+  stage.innerHTML = stageHTML();
+
+  stage.querySelectorAll(".card[data-id]").forEach(el => {
+    const b = before.get(el.dataset.id);
+    if (!b || !el.animate) return;
+    const a = el.getBoundingClientRect();
+    const dx = b.left - a.left, dy = b.top - a.top;
+    if (!dx && !dy) return;
+    el.animate(
+      [{ transform:`translate(${dx}px, ${dy}px)` }, { transform:"none" }],
+      { duration:620, easing:"cubic-bezier(.2,.8,.3,1)" }
+    );
+  });
+}
+
+function r4HTML(){
+  const shelf = shelfCards();
+
+  if (S.fixRevealed) return `
+    ${cardHTML(TEST_B, "big-one")}
+    <div class="label-tag normal jua">일반템!</div>
+    <div class="evidence">금색이어도 <b>★ 1개</b>면 일반템</div>
+    ${shelfStrip(shelf, "지금 배운 것")}`;
+
+  if (S.fixTested) return `
+    <div class="mid">그럼 이건?</div>
+    ${cardHTML(TEST_B, "big-one hot")}
+    <div class="label-tag ask jua">전설템일까? 아닐까?</div>
+    <div class="mid">✋ 다 같이!</div>
+    ${shelfStrip(shelf, "지금 배운 것")}`;
+
+  return `
+    <div class="big jua" style="color:var(--purple-sh)">뭘 더 봤어야 했을까?</div>
+    <div class="picker" id="picker">
+      ${CANDIDATES.map(c => {
+        const taken = S.picked.includes(c.id);
+        return `<div class="pick ${taken ? "taken" : ""}" data-id="${c.id}">
+                  ${cardHTML(c)}<div class="add">${taken ? "✓" : "+"}</div>
+                </div>`;
+      }).join("")}
+    </div>
+    ${shelfStrip(shelf, "지금 배운 것")}`;
+}
+
+function bindPicker(){
+  if (IS_CLASS) return;
+  const p = stage.querySelector("#picker");
+  if (!p) return;
+  p.addEventListener("click", e => {
+    const el = e.target.closest(".pick");
+    if (!el) return;
+    const id = el.dataset.id;
+    if (S.picked.includes(id)) S.picked = S.picked.filter(x => x !== id);
+    else S.picked.push(id);
+    render();
+  });
+}
+
+/* ── 상단 바 ── */
+function renderBar(){
+  const t = { 0:"", 1:"1부 · 다 같이 외치기", 2:"2부 · 전설템 감별사", 3:"" }[S.part];
+  $("#barTitle").textContent = t;
+
+  let total = 0, done = 0;
+  if (S.part === 1){ total = CHANTS.length; done = S.ci + (S.cphase === "reveal" ? 1 : 0); }
+  else if (S.part === 2){ total = 4; done = S.round - 1; }
+  $("#barDots").innerHTML = total
+    ? Array.from({length: total}, (_, i) => `<i class="${i < done ? "on" : ""}"></i>`).join("")
+    : "";
+}
+
+/* ════════════════════════════════════════════════════════════
+   7. 멘토 패널 — 학생 창에는 렌더되지 않는다
+   ════════════════════════════════════════════════════════════ */
+function correlation(){
+  // 선반에서 (금↔★3, 은↔★1) 규칙을 따르는 카드 비율
+  const list = shelfCards();
+  const ok = list.filter(c =>
+    (c.color === "gold" && c.stars === 3) || (c.color === "silver" && c.stars === 1)
+  ).length;
+  return Math.round(ok / list.length * 100);
+}
+
+const GUIDE = {
+  title: {
+    now:"표지", sub:"시작 전", pace:[0,2],
+    next:"스페이스를 누르면 STAGE 1 커튼이 뜨고 시계가 돕니다.",
+    ans:"학생 창을 먼저 열어 TV로 옮기고 전체화면(F11)으로 두세요.",
+    says:["안 속을 자신 있는 사람?"],
+    dont:"학생 창을 열기 전에 진행하지 마세요. 아이들은 아무것도 못 봅니다.",
+  },
+  curtain1: {
+    now:"STAGE 1", sub:"말놀이 함정", pace:[2,8],
+    next:"다음 스페이스에서 첫 단어가 뜹니다.",
+    ans:"화면이 크게 때리고 들어옵니다. 한 박자 두고 넘기세요.",
+    says:["첫 판! 다 같이 하는 거야."],
+  },
+  curtain2: {
+    now:"STAGE 2", sub:"전설템 감별사", pace:[8,11],
+    next:"다음 스페이스에서 미션 설명이 나옵니다.",
+    ans:"여기서 분위기를 한 번 끊고 갑니다. 1부와 다른 게임이라는 신호입니다.",
+    says:["자, 이제 진짜 게임.", "이번엔 안 속을 수 있을까?"],
+  },
+  end: {
+    now:"다리 놓기", sub:"이 수업에서 제일 중요한 2분", pace:[22,24],
+    next:"「치우친 자료 실험실」 탭으로 넘어갑니다. 1단계 프리셋을 먼저 고르세요.",
+    ans:"화면은 재료 둘만 나란히 놓고 질문에서 멈춰 있습니다. 아래를 순서대로 물어 아이 입에서 나오게 하세요.",
+    says:["① 아까 신호등 문제, 왜 틀렸지?",
+          "② 전설템은? 뭘 보고 정했었지?",
+          "③ 그럼 둘 다 뭐가 똑같았어?  ← 오늘의 문장",
+          "④ (받아서) 앞에서 뭘 봤느냐가 답을 정했다는 거네.",
+          "⑤ 근데 우리 이 게임 왜 했을까? — 기계도 똑같거든.",
+          "⑥ 기계한테 한쪽만 보여주면 어떻게 될까?",
+          "⑦ (아이: 틀려요!) 진짜 그런지 보러 가자."],
+    dont:"\"그러니까 치우친 자료를 주면 AI가 틀려요\" 를 멘토가 말하면 뒤의 14분이 통째로 죽습니다. "
+       + "답을 들은 아이는 확인할 이유가 없어집니다.",
+    oops:["<b>③이 안 나온다</b> → 억지로 끌지 말고 ④를 말해 주고 넘어간다. 실험실에서 한 번 더 온다",
+          "<b>⑥에서 '맞혀요'라고 한다</b> → 그것도 좋다. \"그럼 확인해 보자\" 로 그대로 간다"],
+  },
+};
+
+/* 멘토 패널 내용 — 기준 하나: 멘토가 스스로 못 알아낼 것만 남긴다.
+   "크게 외치게 하세요", "웃으며 넘어가세요" 같은 당연한 말을 넣으면
+   정작 필요한 줄(정답·다음에 벌어질 일·활동을 죽이는 실수)을 못 찾는다.
+   dont / oops 는 없으면 그 칸 자체가 사라진다. 억지로 채우지 않는다.      */
+function panelData(){
+  if (S.curtain) return S.part === 1 ? GUIDE.curtain1 : GUIDE.curtain2;
+  if (S.part === 0) return GUIDE.title;
+  if (S.part === 3) return GUIDE.end;
+
+  if (S.part === 1){
+    const c = CHANTS[S.ci];
+    const head = `1부 · ${S.ci + 1}/${CHANTS.length}번째 말놀이`;
+    const ansLine = `정답: ${c.a}  ·  예상 오답: ${c.wrong}  ·  ${c.why}`;
+
+    if (S.cphase === "chant") return {
+      now:head, sub:`외치기 ${S.count} / ${c.times}`, pace:[2,8], ans:ansLine,
+      next: S.count < c.times ? "스페이스마다 한 칸씩 올라갑니다."
+                              : "다음 스페이스에서 함정 질문이 뜹니다.",
+      dont:"아이들 목소리에 맞춰 누르세요. 혼자 빨리 넘기면 함정이 안 걸립니다.",
+    };
+
+    if (S.cphase === "question") return {
+      now:head, sub:"함정 질문", pace:[2,8], ans:ansLine,
+      next:"다음 스페이스에서 '외친 것 → 정답'이 나란히 뜹니다.",
+      dont:"뜸 들이면 안 걸립니다. 뜨자마자 즉시, 크게, 다 같이 묻습니다.",
+    };
+
+    return {
+      now:head, sub:"공개", pace:[2,8],
+      next: S.ci < CHANTS.length - 1 ? "다음 말놀이로 넘어갑니다." : "STAGE 2 커튼이 뜹니다.",
+      ans:`화면 왼쪽이 「${c.times}번 외친 것: ${c.word}」입니다. 거기를 가리키며 물어보세요.`,
+      says:["왜 그렇게 대답했을까?"],
+      dont:"\"그것 때문에 속은 거야\" 를 멘토가 말하지 마세요. 아이가 말해야 합니다.",
+      oops:["<b>안 걸린 아이가 자랑한다</b> → \"오 어떻게 알았어?\" 로 받는다 (놀림으로 번지지 않게)"],
+    };
+  }
+
+  // ── 2부 ──
+  if (S.round === 1){
+    if (S.trainIdx === 0) return {
+      now:"2부 · R1 훈련", sub:"미션 설명", pace:[8,11], meter:true,
+      next:"스페이스마다 카드가 한 장씩. 총 6장입니다.",
+      ans:"진짜 규칙은 ★ 3개면 전설템. 절대 말하지 마세요. 아이템 모양은 의미 없는 잡음입니다.",
+      says:["이 상자에서 나온 걸 보고, 뭐가 전설템인지 알아맞혀 봐요."],
+      oops:["<b>\"금색이 전설템이죠?\"</b> → \"글쎄, 어떨까?\" 긍정도 부정도 하지 않는다"],
+    };
+    const c = TRAIN[S.trainIdx - 1];
+    return {
+      now:"2부 · R1 훈련", sub:`카드 ${S.trainIdx} / ${TRAIN.length}`, pace:[8,11], meter:true,
+      next: S.trainIdx < TRAIN.length ? "다음 카드." : "R2 판정. 여기가 함정입니다.",
+      ans:`${c.color === "gold" ? "금색" : "은색"} · ★${c.stars} → ${isLegend(c) ? "전설템" : "일반템"}   (라벨만 읽어 주세요)`,
+      oops:["<b>\"별 개수 아니에요?\"</b> → 눈치챈 아이다. \"오 그래?\" 하고 R2에서 확인시킨다"],
+    };
+  }
+
+  if (S.round === 2){
+    if (!S.revealed) return {
+      now:"2부 · R2 판정", sub:"함정이 걸리는 지점", pace:[11,14], meter:true,
+      next:"다음 스페이스에서 '전설템 맞음'이 뜹니다.",
+      ans:"정답: 전설템 (은색이지만 ★3). 대부분 '아니다'에 손을 듭니다 — 설계한 대로입니다.",
+      says:["전설템이라고 생각하는 사람 손!", "왜 그렇게 생각했어?"],
+      dont:"손을 들게 하기 전에 스페이스를 누르지 마세요. 반전이 통째로 죽습니다.",
+      oops:["<b>다 맞혔다</b> → \"어떻게 알았어?\" 묻고 R3는 확인용으로 짧게 넘긴다"],
+    };
+    return {
+      now:"2부 · R2 판정", sub:"공개", pace:[11,14], meter:true,
+      next:"R3 반전. 카드가 먼저 색으로 줄을 섭니다.",
+      ans:"이유를 설명하지 마세요. 다음 화면이 그림으로 보여 줍니다.",
+      says:["어? 왜 틀렸을까?"],
+    };
+  }
+
+  if (S.round === 3){
+    if (S.sortBy === "color") return {
+      now:"2부 · R3 반전", sub:"색으로 정렬", pace:[14,17], meter:true,
+      next:"다음 스페이스에서 카드가 ★ 개수로 자리를 옮깁니다. 이 활동의 핵심 장면입니다.",
+      ans:"여기서 3초쯤 멈추세요. 서둘러 넘기면 다음 화면이 죽습니다.",
+      says:["색으로 나눠 보니 깔끔하지?", "근데 이게 진짜 기준이었을까?"],
+    };
+    return {
+      now:"2부 · R3 반전", sub:"별로 정렬 · 정답 공개", pace:[14,17], meter:true,
+      next:"R4 고치기. 아이들이 추가할 카드를 고릅니다.",
+      ans:"진짜 기준은 ★ 3개. 색은 우연히 같이 움직였을 뿐입니다.",
+      says:["왜 우리는 색을 봤을까?"],
+      dont:"\"그래서 치우치면 안 돼요\" 같은 결론을 말하지 마세요. 마지막에 아이가 할 말입니다.",
+    };
+  }
+
+  // R4
+  const corr = correlation();
+  if (S.fixRevealed) return {
+    now:"2부 · R4 고치기", sub:"확인 완료", pace:[17,22], meter:true,
+    next:"다리 놓기 화면으로 넘어갑니다.",
+    ans:"아이들이 별을 보고 판단했습니다. 여기까지 오면 2부는 성공입니다.",
+    says:["뭐 보고 알았어?"],
+    oops:["<b>또 틀렸다</b> → 상관이 아직 높습니다. 아래 막대를 보고 카드를 더 넣어 다시 해 보세요"],
+  };
+  if (S.fixTested) return {
+    now:"2부 · R4 고치기", sub:"재판정", pace:[17,22], meter:true,
+    next:"다음 스페이스에서 '일반템'이 공개됩니다.",
+    ans:"정답: 일반템 (금색이지만 ★1).",
+    says:["전설템이라고 생각하는 사람 손!"],
+  };
+  return {
+    now:"2부 · R4 고치기", sub:`추가한 카드 ${S.picked.length}장`, pace:[17,22], meter:true,
+    next: S.picked.length ? "다음 스페이스에서 새 시험 카드(금색 ★1)가 나옵니다."
+                          : "카드를 하나 이상 넣은 뒤 넘어가세요.",
+    ans: corr === 100
+      ? "색과 별이 아직 100% 붙어 있습니다. 상관을 깨는 카드(금★1 · 은★3 · 금★2 · 은★2)를 넣어야 기준이 드러납니다."
+      : `색-별 상관이 ${corr}%로 떨어졌습니다. 이제 별로 판단할 수 있습니다.`,
+    says:["뭘 더 봤어야 알 수 있었을까?", "그 카드를 왜 골랐어?"],
+    dont:"멘토가 정답 카드를 골라 주지 마세요. 고르는 건 멘티, 누르는 건 멘토입니다.",
+    oops:["<b>금★3 같은 무의미한 카드를 고른다</b> → \"그거 넣으면 뭐가 달라질까?\" 로 되묻는다",
+          "<b>아무도 못 고른다</b> → \"색이랑 별이 따로 노는 카드 있나?\" 정도만"],
+  };
+}
+
+
+/* 시계 — 40분 수업에서 페이스가 제일 어렵다.
+   첫 스페이스에 시작해서 경과와 이 단계의 목표 구간을 같이 보여 준다. */
+let startedAt = null;
+const mmss = ms => {
+  const s = Math.max(0, Math.floor(ms / 1000));
+  return String(Math.floor(s / 60)).padStart(2, "0") + ":" + String(s % 60).padStart(2, "0");
+};
+function renderClock(){
+  if (IS_CLASS) return;
+  const box = $("#pClock");
+  if (!startedAt){
+    box.className = "clock idle";
+    $("#pElapsed").textContent = "00:00";
+    $("#pTarget").textContent = "스페이스를 누르면 시작";
+    return;
+  }
+  const gone = Date.now() - startedAt;
+  const [a, b] = panelData().pace || [0, 40];
+  const late = gone / 60000 > b;
+  box.className = "clock" + (late ? " late" : "");
+  $("#pElapsed").textContent = mmss(gone);
+  $("#pTarget").textContent = `이 단계 목표 ${a}~${b}분` + (late ? " · 밀리는 중" : "");
+}
+setInterval(renderClock, 1000);
+
+function renderPanel(){
+  if (IS_CLASS) return;
+  const d = panelData();
+  $("#pNow").textContent = d.now;
+  $("#pNowSub").textContent = d.sub || "";
+  $("#pNext").textContent = d.next || "";
+  $("#pAnswer").textContent = d.ans || "";
+  $("#pSays").innerHTML = (d.says || []).map(s => `<li>${s}</li>`).join("");
+
+  $("#pDontWrap").style.display = d.dont ? "" : "none";
+  $("#pDont").textContent = d.dont || "";
+  $("#pOopsWrap").style.display = (d.oops && d.oops.length) ? "" : "none";
+  $("#pOops").innerHTML = (d.oops || []).map(s => `<li>${s}</li>`).join("");
+  renderClock();
+
+  const wrap = $("#pMeterWrap");
+  if (d.meter){
+    wrap.style.display = "";
+    const corr = correlation();
+    const m = $("#pMeter");
+    m.classList.toggle("safe", corr < 100);
+    m.querySelector(".bar i").style.width = corr + "%";
+    m.querySelector(".cap").textContent = corr === 100
+      ? `색-별 상관 ${corr}% — 함정이 살아 있습니다.`
+      : `색-별 상관 ${corr}% — 상관이 깨졌습니다. 별로 판단 가능.`;
+  } else {
+    wrap.style.display = "none";
+  }
+}
+
+/* ════════════════════════════════════════════════════════════
+   8. 창 동기화 — opener + postMessage (file:// 에서도 동작)
+   ════════════════════════════════════════════════════════════ */
+function sync(){
+  if (IS_CLASS || !classWin || classWin.closed) return;
+  try { classWin.postMessage({ t:"state", s:S }, "*"); } catch(e){}
+}
+
+window.addEventListener("message", e => {
+  const m = e.data || {};
+  if (IS_CLASS && m.t === "state"){
+    S = m.s;
+    // lastKey를 지우지 않는다 — 지우면 R3 재정렬이 학생 화면에서 그냥 툭 바뀐다.
+    // 정작 움직임이 보여야 하는 쪽이 학생 화면이다.
+    renderBar(); renderStage();
+    return;
+  }
+  if (!IS_CLASS && m.t === "hello"){
+    if (e.source) classWin = e.source;
+    sync();
+  }
+});
+
+function render(){ renderBar(); renderStage(); renderPanel(); sync(); }
+
+/* ════════════════════════════════════════════════════════════
+   9. 조작 — 학생 창에서는 전부 막는다
+   ════════════════════════════════════════════════════════════ */
+if (IS_CLASS){
+  if (window.opener){
+    try { window.opener.postMessage({ t:"hello" }, "*"); } catch(e){}
+  }
+  render();
+} else {
+  const go = () => { if (!startedAt) startedAt = Date.now(); next(); render(); };
+  document.addEventListener("keydown", e => {
+    if (e.key === " " || e.key === "Enter" || e.key === "ArrowRight"){
+      e.preventDefault(); go();
+    } else if (e.key === "ArrowLeft"){
+      e.preventDefault(); prev(); render();
+    }
+  });
+  $("#btnNext").onclick  = go;
+  $("#btnPrev").onclick  = () => { prev(); render(); };
+  $("#btnReset").onclick = () => { S = freshState(); lastKey = ""; startedAt = null; render(); };
+  $("#btnClass").onclick = () => {
+    classWin = window.open(location.pathname + "?view=class", "cm_class", "width=1280,height=800");
+    setTimeout(sync, 700);
+  };
+  render();
+}
+</script>
+</body>
+</html>
