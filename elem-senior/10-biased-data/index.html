@@ -354,9 +354,9 @@ const CHANTS = [
   { word:"노란색", times:10, q:"신호등에서 건너도 되는 색은?",   a:"초록색", wrong:"노란색",
     icon:"dotY", aicon:"dotG",
     why:"제일 확실하게 걸리는 고전. 워밍업으로 첫 번째에 둔다." },
-  { word:"젓가락", times:10, q:"국 먹을 때 쓰는 것은?",          a:"숟가락", wrong:"젓가락",
-    icon:"chop", aicon:"spoon",
-    why:"같은 서랍의 물건이라 방금 말한 쪽이 먼저 나온다." },
+  { word:"우유",   times:10, q:"소가 마시는 것은?",              a:"물",     wrong:"우유",
+    icon:"milk", aicon:"water",
+    why:"점화가 두 겹이다 — 열 번 외친 것에다 '소=우유' 연상까지. 넷 중 제일 세다." },
   { word:"한라산", times:10, q:"우리나라에서 가장 높은 산은?",   a:"백두산", wrong:"한라산",
     icon:"mtn",  aicon:"mtnTop",
     why:"둘 다 아는 이름이라 지식이 아니라 순서 싸움이 된다." },
@@ -373,12 +373,13 @@ const CHANTS = [
 const CHANT_GLYPH = {
   dotY:`<circle cx="50" cy="50" r="36" fill="#FFD93D" stroke="#C9A21A" stroke-width="7"/>`,
   dotG:`<circle cx="50" cy="50" r="36" fill="#5FD79B" stroke="#1F8B58" stroke-width="7"/>`,
-  chop:`<rect x="30" y="8" width="9" height="84" rx="4" transform="rotate(-9 34 50)"
-         fill="#D9A45B" stroke="#8A6A44" stroke-width="5"/>
-        <rect x="61" y="8" width="9" height="84" rx="4" transform="rotate(9 65 50)"
-         fill="#D9A45B" stroke="#8A6A44" stroke-width="5"/>`,
-  spoon:`<ellipse cx="50" cy="30" rx="22" ry="26" fill="#D9E3EC" stroke="#7C8C9E" stroke-width="6"/>
-         <rect x="44" y="52" width="12" height="42" rx="6" fill="#D9E3EC" stroke="#7C8C9E" stroke-width="6"/>`,
+  milk:`<path d="M32 34 L50 15 L68 34 V90 H32 Z" fill="#FBFDFF" stroke="#7C8C9E"
+         stroke-width="6" stroke-linejoin="round"/>
+        <rect x="32" y="56" width="36" height="18" fill="#6FB3E0"/>
+        <line x1="50" y1="15" x2="50" y2="34" stroke="#7C8C9E" stroke-width="4"/>`,
+  water:`<path d="M30 22 H70 L63 94 H37 Z" fill="#EAF6FF" stroke="#3E86A0"
+          stroke-width="6" stroke-linejoin="round"/>
+         <path d="M34 50 H66 L63 94 H37 Z" fill="#5FC0EA"/>`,
   mtn:`<polygon points="50,14 92,88 8,88" fill="#8FB56F" stroke="#4E7238" stroke-width="6" stroke-linejoin="round"/>
        <polygon points="50,14 66,42 34,42" fill="#E8F0DC"/>`,
   mtnTop:`<polygon points="50,10 94,88 6,88" fill="#7FA9C9" stroke="#3E6B8C" stroke-width="6" stroke-linejoin="round"/>
