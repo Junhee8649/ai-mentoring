@@ -233,13 +233,14 @@ body.class-view .pick{cursor:default; pointer-events:none;}
 .pbtn:active{transform:translateY(3px); box-shadow:0 1px 0 #D6CCFF;}
 .pbtn.go{background:var(--green); color:#fff; box-shadow:0 4px 0 var(--green-sh);}
 .pbtn.warn{background:#FFE7E2; color:var(--red-sh); box-shadow:0 4px 0 #FFC9BE;}
-/* 시계 — 40분 수업에서 페이스가 제일 어렵다. 경과와 목표 구간을 같이 본다. */
+/* 시계 — 40분 수업에서 페이스가 제일 어렵다. 경과·목표·지금 단계를 한 덩어리로. */
 .clock{
-  display:flex; align-items:baseline; gap:10px; margin:10px 0 2px;
-  background:#F3F0FF; border-radius:14px; padding:9px 14px;
+  margin:10px 0 2px; background:#F3F0FF; border-radius:14px; padding:9px 14px;
 }
+.clock .row{display:flex; align-items:baseline; gap:10px;}
 .clock .el{font-size:30px; color:var(--purple-sh); line-height:1;}
 .clock .tg{font-size:13px; color:#9A8A70; line-height:1.4;}
+.clock .step{font-size:14px; color:var(--purple-sh); margin-top:5px; opacity:.8;}
 .clock.late{background:#FFE9E4;}
 .clock.late .el{color:var(--red-sh);}
 .clock.idle .el{opacity:.35;}
@@ -248,17 +249,6 @@ body.class-view .pick{cursor:default; pointer-events:none;}
   background:#FFF0EC; border-left:5px solid var(--red); border-radius:9px;
   padding:9px 12px; font-size:15px; line-height:1.55; color:#8C3A2C;
 }
-.oops{list-style:none; display:flex; flex-direction:column; gap:7px;}
-.oops li{
-  background:#FFF8E8; border-left:5px solid var(--gold); border-radius:9px;
-  padding:8px 11px; font-size:14.5px; line-height:1.5; color:#7A5F1E;
-}
-.oops li b{color:#5C4610;}
-
-.now-step{font-size:22px; color:var(--purple-sh); line-height:1.3;}
-.now-sub{font-size:14px; color:#9A8A70; margin-top:3px;}
-.note{font-size:15px; line-height:1.6; color:#5C5470;}
-.note b{color:var(--red-sh);}
 .says{list-style:none; display:flex; flex-direction:column; gap:7px;}
 .says li{
   background:#F3F8F4; border-left:5px solid var(--green); border-radius:9px;
@@ -277,7 +267,6 @@ kbd{
   background:#fff; border:2px solid #D9CDAF; border-bottom-width:4px; border-radius:7px;
   padding:1px 7px; font-family:inherit; font-size:13px;
 }
-.hint-line{font-size:13px; color:#A8987C; line-height:1.6; margin-top:10px;}
 </style>
 </head>
 <body>
@@ -300,31 +289,22 @@ kbd{
     </div>
 
     <div class="clock" id="pClock">
-      <div class="el" id="pElapsed">00:00</div>
-      <div class="tg" id="pTarget"></div>
+      <div class="row">
+        <span class="el" id="pElapsed">00:00</span>
+        <span class="tg" id="pTarget"></span>
+      </div>
+      <div class="step" id="pStep"></div>
     </div>
-
-    <h3>지금</h3>
-    <div class="now-step" id="pNow"></div>
-    <div class="now-sub" id="pNowSub"></div>
-
-    <h3>다음에 일어날 일</h3>
-    <div class="note" id="pNext"></div>
-
-    <h3>정답 / 진행 메모</h3>
-    <div class="answer-box" id="pAnswer"></div>
 
     <h3>던질 말</h3>
     <ul class="says" id="pSays"></ul>
 
+    <h3>정답</h3>
+    <div class="answer-box" id="pAnswer"></div>
+
     <div id="pDontWrap">
       <h3>⛔ 하지 말 것</h3>
       <div class="dont" id="pDont"></div>
-    </div>
-
-    <div id="pOopsWrap">
-      <h3>아이가 이러면</h3>
-      <ul class="oops" id="pOops"></ul>
     </div>
 
     <div id="pMeterWrap" style="display:none">
@@ -335,11 +315,6 @@ kbd{
       </div>
     </div>
 
-    <div class="hint-line">
-      <kbd>Space</kbd> 다음 · <kbd>←</kbd> 이전<br>
-      학생 창을 TV로 끌어 전체화면(F11)으로 두세요.<br>
-      화면 복제가 아니라 <b>확장</b>이어야 이 패널이 아이들에게 안 보입니다.
-    </div>
   </aside>
 </div>
 
@@ -902,27 +877,23 @@ function correlation(){
 const GUIDE = {
   title: {
     now:"표지", sub:"시작 전", pace:[0,2],
-    next:"스페이스를 누르면 STAGE 1 커튼이 뜨고 시계가 돕니다.",
     ans:"학생 창을 먼저 열어 TV로 옮기고 전체화면(F11)으로 두세요.",
     says:["안 속을 자신 있는 사람?"],
     dont:"학생 창을 열기 전에 진행하지 마세요. 아이들은 아무것도 못 봅니다.",
   },
   curtain1: {
     now:"STAGE 1", sub:"말놀이 함정", pace:[2,8],
-    next:"다음 스페이스에서 첫 단어가 뜹니다.",
-    ans:"화면이 크게 때리고 들어옵니다. 한 박자 두고 넘기세요.",
+    ans:"한 박자 두고 넘기세요.",
     says:["첫 판! 다 같이 하는 거야."],
   },
   curtain2: {
     now:"STAGE 2", sub:"전설템 감별사", pace:[8,11],
-    next:"다음 스페이스에서 미션 설명이 나옵니다.",
-    ans:"여기서 분위기를 한 번 끊고 갑니다. 1부와 다른 게임이라는 신호입니다.",
+    ans:"1부와 다른 게임이라는 신호입니다. 분위기를 한 번 끊고 갑니다.",
     says:["자, 이제 진짜 게임.", "이번엔 안 속을 수 있을까?"],
   },
   end: {
     now:"다리 놓기", sub:"이 수업에서 제일 중요한 2분", pace:[22,24],
-    next:"「치우친 자료 실험실」 탭으로 넘어갑니다. 1단계 프리셋을 먼저 고르세요.",
-    ans:"화면은 재료 둘만 나란히 놓고 질문에서 멈춰 있습니다. 아래를 순서대로 물어 아이 입에서 나오게 하세요.",
+    ans:"끝나면 「치우친 자료 실험실」 탭으로. 1단계 프리셋을 먼저 고르세요.",
     says:["① 아까 신호등 문제, 왜 틀렸지?",
           "② 전설템은? 뭘 보고 정했었지?",
           "③ 그럼 둘 다 뭐가 똑같았어?  ← 오늘의 문장",
@@ -931,16 +902,18 @@ const GUIDE = {
           "⑥ 기계한테 한쪽만 보여주면 어떻게 될까?",
           "⑦ (아이: 틀려요!) 진짜 그런지 보러 가자."],
     dont:"\"그러니까 치우친 자료를 주면 AI가 틀려요\" 를 멘토가 말하면 뒤의 14분이 통째로 죽습니다. "
-       + "답을 들은 아이는 확인할 이유가 없어집니다.",
-    oops:["<b>③이 안 나온다</b> → 억지로 끌지 말고 ④를 말해 주고 넘어간다. 실험실에서 한 번 더 온다",
-          "<b>⑥에서 '맞혀요'라고 한다</b> → 그것도 좋다. \"그럼 확인해 보자\" 로 그대로 간다"],
+       + "답을 들은 아이는 확인할 이유가 없어집니다. ③이 안 나오면 억지로 끌지 말고 ④를 말해 주고 넘어가세요.",
   },
 };
 
-/* 멘토 패널 내용 — 기준 하나: 멘토가 스스로 못 알아낼 것만 남긴다.
-   "크게 외치게 하세요", "웃으며 넘어가세요" 같은 당연한 말을 넣으면
-   정작 필요한 줄(정답·다음에 벌어질 일·활동을 죽이는 실수)을 못 찾는다.
-   dont / oops 는 없으면 그 칸 자체가 사라진다. 억지로 채우지 않는다.      */
+/* 멘토 패널 — 네 칸만 둔다: 시간 · 던질 말 · 정답 · ⛔ 하지 말 것.
+   수업 중에 패널을 읽고 있으면 아이들과 눈이 안 맞는다. 힐끗 봐서 끝나야 한다.
+
+   남긴 기준:
+     던질 말 — 그 순간 입에서 나와야 하는 말. 화면만 봐선 안 나오는 것
+     정답    — 규칙을 외웠어도 그 순간엔 날아간다. 없으면 확신 없이 넘기게 된다
+     ⛔      — 어기면 활동이 죽는 것. 미리 읽어도 그 순간에 까먹는 종류
+   뺀 것: 지금(화면 보면 앎) · 다음에 일어날 일(대부분 자명) · 아이가 이러면(거의 안 씀)  */
 function panelData(){
   if (S.curtain) return S.part === 1 ? GUIDE.curtain1 : GUIDE.curtain2;
   if (S.part === 0) return GUIDE.title;
@@ -953,24 +926,23 @@ function panelData(){
 
     if (S.cphase === "chant") return {
       now:head, sub:`외치기 ${S.count} / ${c.times}`, pace:[2,8], ans:ansLine,
-      next: S.count < c.times ? "스페이스마다 한 칸씩 올라갑니다."
-                              : "다음 스페이스에서 함정 질문이 뜹니다.",
+      says:[`다 같이 ${c.times}번! ${c.word}!`],
       dont:"아이들 목소리에 맞춰 누르세요. 혼자 빨리 넘기면 함정이 안 걸립니다.",
     };
 
     if (S.cphase === "question") return {
       now:head, sub:"함정 질문", pace:[2,8], ans:ansLine,
-      next:"다음 스페이스에서 '외친 것 → 정답'이 나란히 뜹니다.",
+      says:["빨리! 생각하지 말고!"],   // 질문 자체는 화면에 크게 떠 있다. 여기 또 쓰지 않는다
       dont:"뜸 들이면 안 걸립니다. 뜨자마자 즉시, 크게, 다 같이 묻습니다.",
     };
 
     return {
       now:head, sub:"공개", pace:[2,8],
-      next: S.ci < CHANTS.length - 1 ? "다음 말놀이로 넘어갑니다." : "STAGE 2 커튼이 뜹니다.",
-      ans:`화면 왼쪽이 「${c.times}번 외친 것: ${c.word}」입니다. 거기를 가리키며 물어보세요.`,
-      says:["왜 그렇게 대답했을까?"],
+      says:["왜 그렇게 대답했을까?",
+            `방금 우리가 뭘 ${c.times}번 말했지?`,
+            "다 같이 속았네! 선생님도 매번 속아요."],
+      ans:`화면 왼쪽 「${c.times}번 외친 것 · ${c.word}」을 손으로 가리키며 물으세요.`,
       dont:"\"그것 때문에 속은 거야\" 를 멘토가 말하지 마세요. 아이가 말해야 합니다.",
-      oops:["<b>안 걸린 아이가 자랑한다</b> → \"오 어떻게 알았어?\" 로 받는다 (놀림으로 번지지 않게)"],
     };
   }
 
@@ -978,49 +950,53 @@ function panelData(){
   if (S.round === 1){
     if (S.trainIdx === 0) return {
       now:"2부 · R1 훈련", sub:"미션 설명", pace:[8,11], meter:true,
-      next:"스페이스마다 카드가 한 장씩. 총 6장입니다.",
-      ans:"진짜 규칙은 ★ 3개면 전설템. 절대 말하지 마세요. 아이템 모양은 의미 없는 잡음입니다.",
-      says:["이 상자에서 나온 걸 보고, 뭐가 전설템인지 알아맞혀 봐요."],
-      oops:["<b>\"금색이 전설템이죠?\"</b> → \"글쎄, 어떨까?\" 긍정도 부정도 하지 않는다"],
+      says:["이 상자에서 나온 걸 보고, 뭐가 전설템인지 알아맞혀 봐요.",
+            "먼저 여섯 개를 보여 줄게요. 잘 보세요."],
+      ans:"진짜 규칙은 ★ 3개면 전설템. 아이템 모양은 의미 없는 잡음입니다.",
+      dont:"규칙을 흘리지 마세요. \"색을 잘 봐\" 같은 힌트도 안 됩니다. "
+         + "\"금색이 전설템이죠?\" 에는 \"글쎄, 어떨까?\" 로 받습니다.",
     };
     const c = TRAIN[S.trainIdx - 1];
+    const last = S.trainIdx === TRAIN.length;
     return {
       now:"2부 · R1 훈련", sub:`카드 ${S.trainIdx} / ${TRAIN.length}`, pace:[8,11], meter:true,
-      next: S.trainIdx < TRAIN.length ? "다음 카드." : "R2 판정. 여기가 함정입니다.",
-      ans:`${c.color === "gold" ? "금색" : "은색"} · ★${c.stars} → ${isLegend(c) ? "전설템" : "일반템"}   (라벨만 읽어 주세요)`,
-      oops:["<b>\"별 개수 아니에요?\"</b> → 눈치챈 아이다. \"오 그래?\" 하고 R2에서 확인시킨다"],
+      says:[isLegend(c) ? "이건 전설템." : "이건 일반템."],
+      ans:`${c.color === "gold" ? "금색" : "은색"} · ★${c.stars} → ${isLegend(c) ? "전설템" : "일반템"}`
+        + (last ? "   ·   다음이 R2 판정, 함정입니다." : ""),
+      dont:"라벨만 읽으세요. 설명하는 순간 함정이 무너집니다.",
     };
   }
 
   if (S.round === 2){
     if (!S.revealed) return {
       now:"2부 · R2 판정", sub:"함정이 걸리는 지점", pace:[11,14], meter:true,
-      next:"다음 스페이스에서 '전설템 맞음'이 뜹니다.",
+      says:["전설템이라고 생각하는 사람 손!",
+            "아니라고 생각하는 사람 손!",
+            "왜 그렇게 생각했어?"],
       ans:"정답: 전설템 (은색이지만 ★3). 대부분 '아니다'에 손을 듭니다 — 설계한 대로입니다.",
-      says:["전설템이라고 생각하는 사람 손!", "왜 그렇게 생각했어?"],
       dont:"손을 들게 하기 전에 스페이스를 누르지 마세요. 반전이 통째로 죽습니다.",
-      oops:["<b>다 맞혔다</b> → \"어떻게 알았어?\" 묻고 R3는 확인용으로 짧게 넘긴다"],
     };
     return {
       now:"2부 · R2 판정", sub:"공개", pace:[11,14], meter:true,
-      next:"R3 반전. 카드가 먼저 색으로 줄을 섭니다.",
-      ans:"이유를 설명하지 마세요. 다음 화면이 그림으로 보여 줍니다.",
-      says:["어? 왜 틀렸을까?"],
+      says:["어? 왜 틀렸을까?", "우리 뭘 보고 정했지?", "다 같이 틀렸네. 괜찮아요."],
+      ans:"다음은 R3 반전. 카드가 먼저 색으로 줄을 섭니다.",
+      dont:"여기서 이유를 설명하지 마세요. 다음 화면이 그림으로 보여 줍니다.",
     };
   }
 
   if (S.round === 3){
     if (S.sortBy === "color") return {
       now:"2부 · R3 반전", sub:"색으로 정렬", pace:[14,17], meter:true,
-      next:"다음 스페이스에서 카드가 ★ 개수로 자리를 옮깁니다. 이 활동의 핵심 장면입니다.",
-      ans:"여기서 3초쯤 멈추세요. 서둘러 넘기면 다음 화면이 죽습니다.",
       says:["색으로 나눠 보니 깔끔하지?", "근데 이게 진짜 기준이었을까?"],
+      ans:"다음 스페이스에서 같은 카드가 ★ 개수로 자리를 옮깁니다 — 이 활동의 핵심 장면.",
+      dont:"서둘러 넘기지 마세요. 여기서 3초쯤 멈춰야 다음 화면이 삽니다.",
     };
     return {
       now:"2부 · R3 반전", sub:"별로 정렬 · 정답 공개", pace:[14,17], meter:true,
-      next:"R4 고치기. 아이들이 추가할 카드를 고릅니다.",
+      says:["색으로 갈라도 맞고, 별로 갈라도 맞았지?",
+            "그래서 우리가 헷갈린 거예요.",
+            "왜 우리는 색을 봤을까?"],
       ans:"진짜 기준은 ★ 3개. 색은 우연히 같이 움직였을 뿐입니다.",
-      says:["왜 우리는 색을 봤을까?"],
       dont:"\"그래서 치우치면 안 돼요\" 같은 결론을 말하지 마세요. 마지막에 아이가 할 말입니다.",
     };
   }
@@ -1029,28 +1005,24 @@ function panelData(){
   const corr = correlation();
   if (S.fixRevealed) return {
     now:"2부 · R4 고치기", sub:"확인 완료", pace:[17,22], meter:true,
-    next:"다리 놓기 화면으로 넘어갑니다.",
+    says:["이번엔 맞혔네! 뭐 보고 알았어?", "아까랑 뭐가 달라졌지?"],
     ans:"아이들이 별을 보고 판단했습니다. 여기까지 오면 2부는 성공입니다.",
-    says:["뭐 보고 알았어?"],
-    oops:["<b>또 틀렸다</b> → 상관이 아직 높습니다. 아래 막대를 보고 카드를 더 넣어 다시 해 보세요"],
   };
   if (S.fixTested) return {
     now:"2부 · R4 고치기", sub:"재판정", pace:[17,22], meter:true,
-    next:"다음 스페이스에서 '일반템'이 공개됩니다.",
+    says:["전설템이라고 생각하는 사람 손!", "왜 그렇게 생각했어?"],
     ans:"정답: 일반템 (금색이지만 ★1).",
-    says:["전설템이라고 생각하는 사람 손!"],
+    dont:"또 손을 들게 하세요. 대답 없이 넘기면 배운 게 확인되지 않습니다.",
   };
   return {
     now:"2부 · R4 고치기", sub:`추가한 카드 ${S.picked.length}장`, pace:[17,22], meter:true,
-    next: S.picked.length ? "다음 스페이스에서 새 시험 카드(금색 ★1)가 나옵니다."
-                          : "카드를 하나 이상 넣은 뒤 넘어가세요.",
+    says:["뭘 더 봤어야 알 수 있었을까?",
+          "그 카드를 왜 골랐어?",
+          "(무의미한 카드를 고르면) 그거 넣으면 뭐가 달라질까?"],
     ans: corr === 100
       ? "색과 별이 아직 100% 붙어 있습니다. 상관을 깨는 카드(금★1 · 은★3 · 금★2 · 은★2)를 넣어야 기준이 드러납니다."
       : `색-별 상관이 ${corr}%로 떨어졌습니다. 이제 별로 판단할 수 있습니다.`,
-    says:["뭘 더 봤어야 알 수 있었을까?", "그 카드를 왜 골랐어?"],
     dont:"멘토가 정답 카드를 골라 주지 마세요. 고르는 건 멘티, 누르는 건 멘토입니다.",
-    oops:["<b>금★3 같은 무의미한 카드를 고른다</b> → \"그거 넣으면 뭐가 달라질까?\" 로 되묻는다",
-          "<b>아무도 못 고른다</b> → \"색이랑 별이 따로 노는 카드 있나?\" 정도만"],
   };
 }
 
@@ -1064,7 +1036,8 @@ const mmss = ms => {
 };
 function renderClock(){
   if (IS_CLASS) return;
-  const box = $("#pClock");
+  const box = $("#pClock"), d = panelData();
+  $("#pStep").textContent = d.now + (d.sub ? " · " + d.sub : "");
   if (!startedAt){
     box.className = "clock idle";
     $("#pElapsed").textContent = "00:00";
@@ -1072,27 +1045,21 @@ function renderClock(){
     return;
   }
   const gone = Date.now() - startedAt;
-  const [a, b] = panelData().pace || [0, 40];
+  const [a, b] = d.pace || [0, 40];
   const late = gone / 60000 > b;
   box.className = "clock" + (late ? " late" : "");
   $("#pElapsed").textContent = mmss(gone);
-  $("#pTarget").textContent = `이 단계 목표 ${a}~${b}분` + (late ? " · 밀리는 중" : "");
+  $("#pTarget").textContent = `목표 ${a}~${b}분` + (late ? " · 밀리는 중" : "");
 }
 setInterval(renderClock, 1000);
 
 function renderPanel(){
   if (IS_CLASS) return;
   const d = panelData();
-  $("#pNow").textContent = d.now;
-  $("#pNowSub").textContent = d.sub || "";
-  $("#pNext").textContent = d.next || "";
-  $("#pAnswer").textContent = d.ans || "";
   $("#pSays").innerHTML = (d.says || []).map(s => `<li>${s}</li>`).join("");
-
+  $("#pAnswer").textContent = d.ans || "";
   $("#pDontWrap").style.display = d.dont ? "" : "none";
   $("#pDont").textContent = d.dont || "";
-  $("#pOopsWrap").style.display = (d.oops && d.oops.length) ? "" : "none";
-  $("#pOops").innerHTML = (d.oops || []).map(s => `<li>${s}</li>`).join("");
   renderClock();
 
   const wrap = $("#pMeterWrap");
