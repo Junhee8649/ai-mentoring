@@ -25,7 +25,14 @@
 :root{
   --ink:#2E2A3A;
   --paper:#FFFDF7;
-  --bg1:#FFF3D6; --bg2:#FFE2A8;
+  /* 무대 조명. body.mood-* 가 장면마다 이 값을 덮어쓴다.
+     기본값은 개편 전과 같은 따뜻한 크림. */
+  --mood-1:#FFF6E0;      /* 뒷벽 */
+  --mood-2:#FFE2A8;      /* 무대 바닥 */
+  --spot:255,252,238;    /* 스포트라이트 색 rgb */
+  --spot-r:58%;          /* 조명이 퍼지는 반경. 작을수록 조여든다 */
+  --spot-a:.95;          /* 조명 세기 */
+  --vig:.10;             /* 비네트 세기 */
   --purple:#7C5CFF; --purple-sh:#563BD1;
   --green:#2FB877; --green-sh:#1F8B58;
   --red:#F0523F;   --red-sh:#B93424;
@@ -59,14 +66,68 @@ html,body{height:100%;}
 body{
   font-family:var(--font-display);
   color:var(--ink);
-  background:linear-gradient(180deg,var(--bg1),var(--bg2));
+  /* 뒷벽(위) → 무대 바닥(아래) 2층. 경계를 62%에 두고 살짝 다른 톤을 준다.
+     완전히 균일한 세로 그라디언트는 '무대'로 안 읽힌다. */
+  background:linear-gradient(180deg,
+    var(--mood-1) 0%,
+    var(--mood-1) 58%,
+    color-mix(in srgb, var(--mood-2) 72%, var(--mood-1)) 62%,
+    var(--mood-2) 100%);
+  transition:background 700ms ease;
   overflow:hidden;
 }
 .jua{letter-spacing:.5px;}
 
 /* ══════════ 레이아웃 ══════════ */
 #app{display:flex; height:100vh;}
-#stageWrap{flex:1 1 auto; display:flex; flex-direction:column; min-width:0;}
+#stageWrap{flex:1 1 auto; display:flex; flex-direction:column; min-width:0; position:relative; isolation:isolate;}
+
+/* 조명·비네트·그레인은 #stageWrap 위에만 겹쳐 깐다.
+   body 에 붙이면 멘토 패널까지 물든다. */
+#stageWrap::before,
+#stageWrap::after{content:""; position:absolute; inset:0; pointer-events:none;}
+
+/* 스포트라이트 + 비네트 */
+#stageWrap::before{
+  z-index:0;
+  background:
+    radial-gradient(ellipse var(--spot-r) calc(var(--spot-r) * .9) at 50% 44%,
+      rgba(var(--spot),var(--spot-a)) 0%,
+      rgba(var(--spot),0) 100%),
+    radial-gradient(ellipse 120% 110% at 50% 50%,
+      rgba(var(--amb),0) 55%,
+      rgba(var(--amb),var(--vig)) 100%);
+  transition:background 700ms ease;
+}
+
+/* 종이 그레인. 싸구려 CSS 그라디언트 느낌을 지우는 데 기여도가 가장 크다.
+   feTurbulence 를 데이터 URI 로 — 외부 이미지 0개 제약을 지킨다. */
+#stageWrap::after{
+  z-index:2;
+  opacity:.035; mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* 무대에 떠다니는 빛 알갱이. transform 만 움직여 어느 기계에서도 부담이 없다. */
+.motes{position:absolute; inset:0; z-index:1; pointer-events:none; overflow:hidden;}
+.motes i{
+  position:absolute; width:10px; height:10px; border-radius:50%;
+  background:rgba(255,255,255,.75);
+  box-shadow:0 0 14px 6px rgba(255,255,255,.45);
+  animation:drift linear infinite;
+}
+.motes i:nth-child(1){left:12%; top:80%; animation-duration:29s; animation-delay:-3s;}
+.motes i:nth-child(2){left:28%; top:92%; animation-duration:37s; animation-delay:-14s;}
+.motes i:nth-child(3){left:47%; top:86%; animation-duration:33s; animation-delay:-22s;}
+.motes i:nth-child(4){left:66%; top:95%; animation-duration:41s; animation-delay:-8s;}
+.motes i:nth-child(5){left:80%; top:83%; animation-duration:26s; animation-delay:-19s;}
+.motes i:nth-child(6){left:92%; top:90%; animation-duration:45s; animation-delay:-31s;}
+@keyframes drift{
+  0%  {transform:translate3d(0,0,0) scale(.8); opacity:0;}
+  12% {opacity:.55;}
+  88% {opacity:.45;}
+  100%{transform:translate3d(26px,-104vh,0) scale(1.1); opacity:0;}
+}
 #panel{
   flex:0 0 380px; background:var(--paper); border-left:6px solid var(--line);
   display:flex; flex-direction:column; overflow-y:auto; padding:16px 18px 22px;
@@ -80,11 +141,13 @@ body.class-view #stageWrap{flex:1 1 100%;}
   flex:1 1 auto; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:clamp(14px,2.4vh,28px);
   padding:clamp(16px,3vh,40px) clamp(16px,3vw,48px); text-align:center; min-height:0;
+  position:relative; z-index:1;
 }
 .topbar{
   flex:0 0 auto; display:flex; align-items:center; justify-content:space-between;
   gap:14px; padding:10px 20px; background:rgba(255,253,247,.72);
   border-bottom:4px solid var(--line);
+  position:relative; z-index:3;
 }
 .topbar .ttl{font-size:clamp(16px,1.6vw,22px); color:var(--purple-sh);}
 .topbar .dots{display:flex; gap:8px;}
@@ -310,6 +373,9 @@ kbd{
     <div class="topbar">
       <span class="ttl jua" id="barTitle"></span>
       <span class="dots" id="barDots"></span>
+    </div>
+    <div class="motes" aria-hidden="true">
+      <i></i><i></i><i></i><i></i><i></i><i></i>
     </div>
     <div id="stage"></div>
   </div>
