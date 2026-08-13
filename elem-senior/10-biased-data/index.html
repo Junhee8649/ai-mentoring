@@ -154,7 +154,9 @@ body.class-view #stageWrap{flex:1 1 100%;}
 #stage{
   flex:1 1 auto; display:flex; flex-direction:column;
   align-items:center; justify-content:center; gap:clamp(14px,2.4vh,28px);
-  padding:clamp(16px,3vh,40px) clamp(16px,3vw,48px); text-align:center; min-height:0;
+  /* TV 오버스캔 대비 — 일부 TV 는 가장자리 2~3% 를 잘라 낸다.
+     중요한 것이 가장자리에 붙지 않게 여유를 준다. */
+  padding:clamp(24px,4.5vh,56px) clamp(28px,5vw,72px); text-align:center; min-height:0;
   position:relative; z-index:1;
 }
 .topbar{
@@ -419,6 +421,22 @@ body.class-view .pick{cursor:default; pointer-events:none;}
 kbd{
   background:#fff; border:2px solid #D9CDAF; border-bottom-width:4px; border-radius:7px;
   padding:1px 7px; font-family:inherit; font-size:13px;
+}
+
+/* ══════════ 동작 줄이기 ══════════
+   이 설정을 켠 사람에게는 모든 연출을 멈춘다.
+   다만 mood 색 전환은 남긴다 — 색이 바뀌는 것은 '동작'이 아니라
+   지금 무슨 단계인지 알려 주는 정보다. */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{
+    animation-duration:.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  body,
+  #stageWrap::before{transition-duration:400ms !important;}
+  .drape{display:none;}
+  .motes{display:none;}
 }
 </style>
 <style id="font">
@@ -1368,6 +1386,37 @@ function renderPanel(){
   } else {
     wrap.style.display = "none";
   }
+
+  checkFont();
+}
+
+/* 폰트 가드 — 임베드된 서브셋에 없는 글자가 화면에 나오면 알려 준다.
+   문구를 고친 뒤 `node build/font.mjs …` 를 다시 안 돌리면 그 글자만
+   맑은 고딕으로 튄다. 수업 중에는 알아채기 어렵다.
+   리허설을 한 번 끝까지 돌리면 반드시 걸린다.
+   학생 창에는 절대 표시하지 않는다. */
+const fontMissing = new Set();
+function checkFont(){
+  if (IS_CLASS || !window.__FONT_COVERAGE__) return;
+  const cover = new Set([...window.__FONT_COVERAGE__]);
+  const text = stage.textContent + $("#barTitle").textContent;
+  for (const ch of text){
+    if (ch.codePointAt(0) < 0x20) continue;
+    if (!cover.has(ch)) fontMissing.add(ch);
+  }
+  if (!fontMissing.size) return;
+
+  let box = $("#fontWarn");
+  if (!box){
+    box = document.createElement("div");
+    box.id = "fontWarn";
+    box.className = "dont";
+    box.style.marginTop = "10px";
+    $("#panel").appendChild(box);
+  }
+  box.textContent =
+    `폰트에 없는 글자: ${[...fontMissing].join(" ")} → tools 에서 ` +
+    `node build/font.mjs elem-senior/10-biased-data/index.html 을 다시 돌리세요.`;
 }
 
 /* ════════════════════════════════════════════════════════════
