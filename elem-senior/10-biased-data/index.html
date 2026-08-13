@@ -710,9 +710,57 @@ function renderStage(){
   // R3 정렬만 바뀐 경우엔 DOM을 유지하고 자리만 옮긴다(움직임이 보여야 한다)
   if (key === lastKey){ patchSort(); return; }
   lastKey = key;
-  stage.innerHTML = stageHTML();
-  bindPicker();
+  swapStage(stageHTML());
 }
+
+/* 장면 전환 — 나가는 화면을 잠깐 밀어내고 새 화면을 아래에서 들여온다.
+   자식 요소는 45ms 씩 늦게 도착한다(스태거). 손 대비 완성도 상승폭이 제일 크다.
+
+   WAAPI 를 쓰는 이유는 patchSort() 주석에 적힌 것과 같다 —
+   CSS transition + requestAnimationFrame 조합은 rAF 가 스타일 재계산보다 먼저
+   돌면 트랜지션이 통째로 건너뛰어진다. WAAPI 는 그 타이밍에 기대지 않는다. */
+const REDUCED = matchMedia("(prefers-reduced-motion: reduce)");
+const SPRING = "cubic-bezier(.18,.9,.28,1.06)";
+let swapTimer = null;
+
+function swapStage(html){
+  /* 스페이스 연타 대비 두 가지:
+       ① 대기 중인 교체가 있으면 취소한다. 안 그러면 앞 전환의 등장 애니메이션이
+          뒤 화면의 DOM 위에서 돌아 화면이 겹쳐 보인다.
+       ② 지금 상태를 값으로 붙잡아 둔다. 아래 연출은 120ms 뒤에 도는데,
+          그 사이에 S 가 다음 장면으로 넘어가 있을 수 있다.           */
+  clearTimeout(swapTimer);
+  const at = { part:S.part, cphase:S.cphase, count:S.count };
+
+  if (REDUCED.matches || !stage.animate){
+    stage.innerHTML = html;
+    bindPicker();
+    return;
+  }
+
+  [...stage.children].forEach(el => {
+    el.animate(
+      [{ opacity:1, transform:"none" }, { opacity:0, transform:"scale(.96) translateY(-8px)" }],
+      { duration:120, easing:"ease-in", fill:"forwards" }
+    );
+  });
+
+  swapTimer = setTimeout(() => {
+    stage.innerHTML = html;
+    bindPicker();
+    [...stage.children].forEach((el, i) => {
+      el.animate(
+        [{ opacity:0, transform:"translateY(22px) scale(.97)" },
+         { opacity:1, transform:"none" }],
+        { duration:300, delay:i * 45, easing:SPRING, fill:"backwards" }
+      );
+    });
+    stageBeat(at);
+  }, 120);
+}
+
+/* 장면별 추가 연출. 붙잡아 둔 at 을 쓴다 — 지금의 S 를 보면 안 된다. */
+function stageBeat(at){}
 
 function stageKey(){
   if (S.curtain) return "curtain" + S.part;
