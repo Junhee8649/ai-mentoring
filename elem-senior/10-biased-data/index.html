@@ -78,6 +78,20 @@ body{
 }
 .jua{letter-spacing:.5px;}
 
+/* ══════════ 장면별 조명 ══════════
+   뒷자리에서도 '지금 뭘 하는 중인지'가 색으로 읽힌다.
+   전환은 700ms — 이보다 빠르면 깜빡임으로 보이고, 느리면 다음 화면을 방해한다.
+   붉은 전환(alarm)은 한 번만 부드럽게 일어난다. 반복 점멸은 광과민성 위험이라 쓰지 않는다. */
+body.mood-title  {--mood-1:#FFF3DA; --mood-2:#FFD98F; --spot-r:62%;}
+body.mood-chant  {--mood-1:#FFF6E0; --mood-2:#FFE2A8; --spot-r:58%;}
+body.mood-alarm  {--mood-1:#FFE0D6; --mood-2:#F5A08C; --spot-r:40%; --vig:.22; --spot:255,238,232;}
+body.mood-reveal {--mood-1:#EEF9EF; --mood-2:#B6E3C4; --spot-r:64%; --spot:248,255,248;}
+body.mood-train  {--mood-1:#FFFAEE; --mood-2:#F2E3BE; --spot-r:56%;}
+body.mood-judge  {--mood-1:#F4EFFF; --mood-2:#CFC2F5; --spot-r:50%; --spot:250,247,255;}
+body.mood-twist  {--mood-1:#F1ECFF; --mood-2:#C3B4F2; --spot-r:70%; --spot:250,247,255;}
+body.mood-fix    {--mood-1:#EAF7F7; --mood-2:#AEDCDC; --spot-r:62%; --spot:246,255,255;}
+body.mood-end    {--mood-1:#FFEFD2; --mood-2:#F0B96A; --spot-r:66%;}
+
 /* ══════════ 레이아웃 ══════════ */
 #app{display:flex; height:100vh;}
 #stageWrap{flex:1 1 auto; display:flex; flex-direction:column; min-width:0; position:relative; isolation:isolate;}
@@ -711,6 +725,31 @@ function stageKey(){
   return `r1:${S.trainIdx}`;
 }
 
+/* 지금 장면에 맞는 조명 이름. 상태를 읽기만 하고 바꾸지 않는다. */
+function moodFor(){
+  if (S.curtain) return S.part === 1 ? "title" : "judge";
+  if (S.part === 0) return "title";
+  if (S.part === 3) return "end";
+  if (S.part === 1){
+    if (S.cphase === "question") return "alarm";
+    if (S.cphase === "reveal")   return "reveal";
+    return "chant";
+  }
+  if (S.round === 1) return "train";
+  if (S.round === 2) return "judge";
+  if (S.round === 3) return "twist";
+  return "fix";
+}
+
+function renderMood(){
+  const m = "mood-" + moodFor();
+  if (document.body.classList.contains(m)) return;
+  [...document.body.classList].forEach(c => {
+    if (c.startsWith("mood-")) document.body.classList.remove(c);
+  });
+  document.body.classList.add(m);
+}
+
 function stageHTML(){
   // STAGE 커튼 — 부와 부 사이에 박자를 준다.
   // 여기서 분위기가 한 번 끊겨야 다음 활동이 '새 게임'으로 시작한다.
@@ -1192,7 +1231,7 @@ window.addEventListener("message", e => {
     S = m.s;
     // lastKey를 지우지 않는다 — 지우면 R3 재정렬이 학생 화면에서 그냥 툭 바뀐다.
     // 정작 움직임이 보여야 하는 쪽이 학생 화면이다.
-    renderBar(); renderStage();
+    renderMood(); renderBar(); renderStage();
     return;
   }
   if (!IS_CLASS && m.t === "hello"){
@@ -1201,7 +1240,7 @@ window.addEventListener("message", e => {
   }
 });
 
-function render(){ renderBar(); renderStage(); renderPanel(); sync(); }
+function render(){ renderMood(); renderBar(); renderStage(); renderPanel(); sync(); }
 
 /* ════════════════════════════════════════════════════════════
    9. 조작 — 학생 창에서는 전부 막는다
