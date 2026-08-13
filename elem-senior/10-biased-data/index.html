@@ -185,16 +185,38 @@ body.class-view #stageWrap{flex:1 1 100%;}
 }
 .card.tilt{transform:rotate(-6deg);}
 
-/* STAGE 커튼 — 크게 때리고 들어온다 */
+/* STAGE 커튼 — 좌우 막이 갈라지며 타이틀이 때리고 들어온다.
+   부와 부 사이에 박자를 주는 자리다. 여기서 분위기가 한 번 끊겨야
+   다음 활동이 '새 게임'으로 시작한다.
+
+   .curtain 에 position 을 주지 않는다 — 아래 .drape 가 #stage 를 기준으로
+   잡혀야 하기 때문. relative 로 두면 막이 타이틀 글자 크기만 해진다. */
 .curtain{
   display:flex; flex-direction:column; align-items:center; gap:clamp(8px,1.8vh,22px);
-  animation:slam .5s cubic-bezier(.2,1.5,.4,1);
 }
+.curtain .stage-no,
+.curtain .game-title{animation:slam .5s cubic-bezier(.2,1.5,.4,1) .34s backwards;}
 @keyframes slam{
   0%{transform:scale(2.6); opacity:0}
   55%{transform:scale(.93); opacity:1}
   100%{transform:scale(1)}
 }
+
+/* 막은 #stage 안에서만 움직인다.
+   position:fixed 로 두면 멘토 패널까지 붉게 쓸고 지나간다. */
+.drape{
+  position:absolute; top:0; bottom:0; width:52%; z-index:20; pointer-events:none;
+  background:
+    repeating-linear-gradient(90deg,
+      rgba(var(--amb),.14) 0 2px, rgba(var(--amb),0) 2px 26px),
+    linear-gradient(90deg, #C9463A, #E8695B 40%, #B93424);
+  box-shadow:0 0 60px rgba(var(--amb),.35);
+  animation:drape-open .62s cubic-bezier(.62,.02,.28,1) forwards;
+}
+.drape.left {left:0;}
+.drape.right{right:0; animation-name:drape-open-r;}
+@keyframes drape-open  {from{transform:translateX(0)} to{transform:translateX(-101%)}}
+@keyframes drape-open-r{from{transform:translateX(0)} to{transform:translateX(101%)}}
 .stage-no{
   background:var(--purple); color:#fff; border-radius:18px;
   padding:clamp(4px,.8vh,10px) clamp(18px,3vw,44px); letter-spacing:6px;
@@ -232,19 +254,40 @@ body.class-view #stageWrap{flex:1 1 100%;}
 .counter{display:flex; gap:clamp(6px,.9vw,14px); flex-wrap:wrap; justify-content:center;}
 .counter i{
   width:clamp(22px,2.6vw,40px); height:clamp(22px,2.6vw,40px); border-radius:50%;
-  background:#EFE3C6; border:4px solid #DCC99F; display:block; transition:transform .12s;
+  background:#EFE3C6; border:4px solid #DCC99F; display:block;
+  transition:transform .12s, background .2s, border-color .2s;
+  box-shadow:inset 0 2px 4px rgba(var(--amb),.10);
 }
-.counter i.on{background:var(--green); border-color:var(--green-sh); transform:scale(1.12);}
+.counter i.on{
+  background:var(--green); border-color:var(--green-sh); transform:scale(1.12);
+  box-shadow:0 3px 0 var(--green-sh), 0 4px 10px rgba(var(--amb),.16);
+}
 .counter i.new{animation:dotpop .3s ease;}
 @keyframes dotpop{0%{transform:scale(.3)}60%{transform:scale(1.5)}100%{transform:scale(1.12)}}
 .count-num{font-size:clamp(26px,3vw,46px); color:var(--green-sh);}
 
 /* 함정 질문 */
-.alarm{font-size:clamp(40px,6vw,90px); animation:shake .5s ease;}
+.alarm{
+  font-size:clamp(40px,6vw,90px);
+  animation:shake .5s ease, alarm-glow 1.1s ease-in-out infinite alternate;
+  filter:drop-shadow(0 6px 14px rgba(185,52,36,.45));
+}
 @keyframes shake{0%,100%{transform:none}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+/* 0.45Hz — 광과민성 기준(3Hz)에서 한참 아래이고 밝기 변화도 완만하다 */
+@keyframes alarm-glow{
+  from{filter:drop-shadow(0 6px 14px rgba(185,52,36,.35));}
+  to  {filter:drop-shadow(0 6px 22px rgba(185,52,36,.75));}
+}
 .qbox{
   background:var(--red); color:#fff; border-radius:36px;
   padding:clamp(26px,5vh,64px) clamp(30px,6vw,90px); --sh:var(--red-sh); box-shadow:var(--e3);
+  /* 뜨자마자 즉시, 크게 물어야 걸린다. 상자는 위에서 내려꽂히고 살짝 튄다. */
+  animation:drop .42s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes drop{
+  0%  {transform:translateY(-38px) scale(.9); opacity:0;}
+  60% {transform:translateY(4px)   scale(1.02); opacity:1;}
+  100%{transform:none;}
 }
 
 /* 공개 */
@@ -760,7 +803,29 @@ function swapStage(html){
 }
 
 /* 장면별 추가 연출. 붙잡아 둔 at 을 쓴다 — 지금의 S 를 보면 안 된다. */
-function stageBeat(at){}
+function stageBeat(at){
+  /* 외치기 — 반 전체가 한 번 외칠 때마다 무대가 살짝 내려앉는다.
+     작아야 한다. 크면 멀미가 난다. */
+  if (at.part === 1 && at.cphase === "chant" && at.count > 0){
+    stage.animate(
+      [{ transform:"translateY(0)" }, { transform:"translateY(3px)" }, { transform:"translateY(0)" }],
+      { duration:170, easing:"ease-out" }
+    );
+  }
+
+  /* 함정 질문 — 무대가 한 번 흔들린다.
+     광과민성 때문에 반복하지 않는다. 딱 한 번, 260ms. */
+  if (at.part === 1 && at.cphase === "question"){
+    stage.animate(
+      [{ transform:"translate(0,0)" },
+       { transform:"translate(-9px,3px)" },
+       { transform:"translate(8px,-3px)" },
+       { transform:"translate(-5px,2px)" },
+       { transform:"translate(0,0)" }],
+      { duration:260, easing:"ease-out" }
+    );
+  }
+}
 
 function stageKey(){
   if (S.curtain) return "curtain" + S.part;
@@ -791,11 +856,28 @@ function moodFor(){
 
 function renderMood(){
   const m = "mood-" + moodFor();
-  if (document.body.classList.contains(m)) return;
-  [...document.body.classList].forEach(c => {
-    if (c.startsWith("mood-")) document.body.classList.remove(c);
-  });
-  document.body.classList.add(m);
+  if (!document.body.classList.contains(m)){
+    [...document.body.classList].forEach(c => {
+      if (c.startsWith("mood-")) document.body.classList.remove(c);
+    });
+    document.body.classList.add(m);
+  }
+
+  /* 외치기가 쌓일수록 조명이 조여든다 — 점화가 세지는 것이 눈에 보인다.
+     연출이 아니라 활동 설계에 맞는 장치다.
+
+     단, 외치는 단어의 글자 크기는 절대 건드리지 않는다.
+     크기가 변하면 아이들 눈이 화면에 붙어 목소리가 죽는다.
+     이 활동은 소리가 커져야 점화가 걸린다. 조명만 움직인다. */
+  if (S.part === 1 && S.cphase === "chant" && !S.curtain){
+    const c = CHANTS[S.ci];
+    const t = c.times ? S.count / c.times : 0;      // 0 → 1
+    document.body.style.setProperty("--spot-r", (58 - t * 16) + "%");
+    document.body.style.setProperty("--vig", (.10 + t * .10).toFixed(3));
+  } else {
+    document.body.style.removeProperty("--spot-r");
+    document.body.style.removeProperty("--vig");
+  }
 }
 
 function stageHTML(){
@@ -807,6 +889,8 @@ function stageHTML(){
       : { no:"STAGE 2", nm:"전설템 감별사" };
     return `
       <div class="curtain">
+        <div class="drape left"></div>
+        <div class="drape right"></div>
         <div class="stage-no jua">${t.no}</div>
         <div class="game-title jua">${t.nm}</div>
       </div>`;
