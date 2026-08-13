@@ -94,7 +94,13 @@ body.mood-end    {--mood-1:#FFEFD2; --mood-2:#F0B96A; --spot-r:66%;}
 
 /* ══════════ 레이아웃 ══════════ */
 #app{display:flex; height:100vh;}
-#stageWrap{flex:1 1 auto; display:flex; flex-direction:column; min-width:0; position:relative; isolation:isolate;}
+/* overflow:hidden 이 있어야 커튼이 무대 밖으로 삐져나가지 않는다.
+   없으면 오른쪽 막이 걷힐 때 멘토 패널 쪽으로 넘어간다
+   (학생 창은 패널이 없어 이 증상이 안 보인다 — 그래서 놓치기 쉽다). */
+#stageWrap{
+  flex:1 1 auto; display:flex; flex-direction:column; min-width:0;
+  position:relative; isolation:isolate; overflow:hidden;
+}
 
 /* 조명·비네트·그레인은 #stageWrap 위에만 겹쳐 깐다.
    body 에 붙이면 멘토 패널까지 물든다. */
