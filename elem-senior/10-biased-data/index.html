@@ -349,7 +349,17 @@ body.class-view #stageWrap{flex:1 1 100%;}
   color:var(--purple-sh); text-align:left;
 }
 .board .row .cards{display:flex; gap:clamp(6px,.9vw,16px); flex-wrap:wrap;}
-.board .row.hit{outline:6px solid var(--green); outline-offset:4px;}
+/* ★3 줄 — 카드가 다 도착한 뒤(620ms) 조명이 옮겨 온다.
+   먼저 켜지면 답을 미리 알려 주는 셈이라 순서가 중요하다. */
+.board .row.hit{
+  outline:6px solid var(--green); outline-offset:4px;
+  background:rgba(47,184,119,.10);
+  animation:row-light .5s ease .62s backwards;
+}
+@keyframes row-light{
+  from{outline-color:rgba(47,184,119,0); background:rgba(47,184,119,0);}
+  to  {outline-color:var(--green);       background:rgba(47,184,119,.10);}
+}
 
 /* 후보 고르기 */
 .picker{display:flex; gap:clamp(8px,1.2vw,20px); justify-content:center; flex-wrap:wrap;}
@@ -1071,8 +1081,19 @@ function patchSort(){
     const a = el.getBoundingClientRect();
     const dx = b.left - a.left, dy = b.top - a.top;
     if (!dx && !dy) return;
+    /* 자리를 옮기는 동안 살짝 들렸다 내려앉는다.
+       평면 이동만 하면 카드가 '미끄러지는' 느낌인데,
+       들렸다 놓이면 '옮겨 놓는' 느낌이 된다 — 이 장면의 의미와 맞는다. */
     el.animate(
-      [{ transform:`translate(${dx}px, ${dy}px)` }, { transform:"none" }],
+      [{ transform:`translate(${dx}px, ${dy}px) scale(1)`,           offset:0 },
+       { transform:`translate(${dx*.5}px, ${dy*.5}px) scale(1.07)`,  offset:.5 },
+       { transform:"none",                                           offset:1 }],
+      { duration:620, easing:"cubic-bezier(.2,.8,.3,1)" }
+    );
+    el.animate(
+      [{ filter:"drop-shadow(0 6px 8px rgba(74,52,20,.14))" },
+       { filter:"drop-shadow(0 22px 26px rgba(74,52,20,.22))" },
+       { filter:"drop-shadow(0 6px 8px rgba(74,52,20,.14))" }],
       { duration:620, easing:"cubic-bezier(.2,.8,.3,1)" }
     );
   });
