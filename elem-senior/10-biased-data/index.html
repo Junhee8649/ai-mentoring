@@ -34,6 +34,25 @@
   --line:#E4D7B8;
   --font-display:"Jua","Gmarket Sans","Malgun Gothic","맑은 고딕",sans-serif;
   --font-ui:"Pretendard","Malgun Gothic","맑은 고딕",system-ui,sans-serif;
+
+  /* 그림자 — 하드 오프셋(장난감 느낌) + 소프트 앰비언트(깊이)를 항상 함께.
+     하드만 쓰면 90년대 플래시가 되고, 소프트만 쓰면 이 앱의 성격이 사라진다.
+     --sh 는 각 요소가 자기 색으로 덮어쓰는 하드 그림자 색이다. */
+  --sh:#DFCEA5;
+  --amb:74,52,20;                     /* 앰비언트 그림자의 rgb. 검정 대신 따뜻한 갈색 */
+
+  --e1: 0 3px 0 var(--sh),
+        0 2px 6px rgba(var(--amb),.10);
+  --e2: 0 8px 0 var(--sh),
+        0 6px 10px rgba(var(--amb),.10),
+        0 14px 28px rgba(var(--amb),.10),
+        inset 0 1px 0 rgba(255,255,255,.9);
+  --e3: 0 12px 0 var(--sh),
+        0 10px 18px rgba(var(--amb),.12),
+        0 26px 54px rgba(var(--amb),.14),
+        inset 0 1px 0 rgba(255,255,255,.95);
+  --e-press: 0 1px 0 var(--sh),
+        0 1px 3px rgba(var(--amb),.12);
 }
 *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0;}
 html,body{height:100%;}
@@ -102,7 +121,7 @@ body.class-view #stageWrap{flex:1 1 100%;}
 .stage-no{
   background:var(--purple); color:#fff; border-radius:18px;
   padding:clamp(4px,.8vh,10px) clamp(18px,3vw,44px); letter-spacing:6px;
-  font-size:clamp(20px,2.8vw,46px); box-shadow:0 8px 0 var(--purple-sh);
+  font-size:clamp(20px,2.8vw,46px); --sh:var(--purple-sh); box-shadow:var(--e2);
 }
 .press{
   font-size:clamp(16px,1.8vw,28px); color:#9A8A70;
@@ -113,7 +132,7 @@ body.class-view #stageWrap{flex:1 1 100%;}
 /* 외치기 카드 */
 .chant-box{
   background:var(--paper); border-radius:36px; padding:clamp(20px,3vh,48px) clamp(32px,6vw,90px);
-  box-shadow:0 14px 0 #E0CFA6, inset 0 0 0 6px #fff;
+  --sh:#E0CFA6; box-shadow:var(--e2), inset 0 0 0 6px #fff;
   display:flex; flex-direction:column; align-items:center; gap:clamp(6px,1.2vh,16px);
 }
 .chant-icon{width:clamp(74px,9vw,150px);}
@@ -123,12 +142,12 @@ body.class-view #stageWrap{flex:1 1 100%;}
 .face-off{display:flex; align-items:center; gap:clamp(14px,3vw,50px); flex-wrap:wrap; justify-content:center;}
 .face-off .side{
   background:var(--paper); border-radius:28px; border:6px solid #fff;
-  padding:clamp(12px,2vh,24px) clamp(18px,2.6vw,40px); box-shadow:0 10px 0 #DFCEA5;
+  padding:clamp(12px,2vh,24px) clamp(18px,2.6vw,40px); --sh:#DFCEA5; box-shadow:var(--e2);
   display:flex; flex-direction:column; align-items:center; gap:6px;
   min-width:clamp(130px,15vw,230px);
 }
 .face-off .side.wrong{opacity:.62;}
-.face-off .side.right{border-color:var(--green); box-shadow:0 10px 0 var(--green-sh);}
+.face-off .side.right{border-color:var(--green); --sh:var(--green-sh); box-shadow:var(--e2);}
 .face-off .nm{font-size:clamp(26px,3.4vw,56px); line-height:1.1;}
 .face-off .side.right .nm{color:var(--green-sh);}
 .face-off .cap{font-size:clamp(13px,1.3vw,20px); color:#9A8A70;}
@@ -148,7 +167,7 @@ body.class-view #stageWrap{flex:1 1 100%;}
 @keyframes shake{0%,100%{transform:none}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
 .qbox{
   background:var(--red); color:#fff; border-radius:36px;
-  padding:clamp(26px,5vh,64px) clamp(30px,6vw,90px); box-shadow:0 14px 0 var(--red-sh);
+  padding:clamp(26px,5vh,64px) clamp(30px,6vw,90px); --sh:var(--red-sh); box-shadow:var(--e3);
 }
 
 /* 공개 */
@@ -163,15 +182,16 @@ body.class-view #stageWrap{flex:1 1 100%;}
 .card{
   width:clamp(120px,13vw,190px); flex:0 0 auto;
   background:var(--paper); border-radius:24px; padding:10px 10px 8px;
-  box-shadow:0 8px 0 #DFCEA5; border:6px solid #ccc; transition:transform .55s cubic-bezier(.2,.8,.3,1), box-shadow .2s;
+  --sh:#DFCEA5; box-shadow:var(--e2); border:6px solid #ccc; transition:transform .55s cubic-bezier(.2,.8,.3,1), box-shadow .2s;
 }
-.card.gold{border-color:var(--gold); box-shadow:0 8px 0 var(--gold-deep);}
-.card.silver{border-color:var(--silver); box-shadow:0 8px 0 var(--silver-deep);}
+.card.gold{border-color:var(--gold); --sh:var(--gold-deep);}
+.card.silver{border-color:var(--silver); --sh:var(--silver-deep);}
 .card svg{width:100%; height:auto; display:block;}
 /* 별은 카드 테두리 색과 무관한 중립색으로 — 색과 별이 시각적으로 얽히면
    "금색이라서 별이 많아 보인다"가 되어 두 특징을 갈라 볼 수 없게 된다. */
 .card .stars{font-size:clamp(15px,1.7vw,26px); letter-spacing:3px; color:#8A7550; margin-top:2px; min-height:1.2em;}
-.card.big-one{width:clamp(180px,20vw,300px);}
+/* 주인공 카드가 조연과 같은 깊이면 화면이 납작해진다. 한 단계 더 띄운다. */
+.card.big-one{width:clamp(180px,20vw,300px); box-shadow:var(--e3);}
 .card.dim{opacity:.34;}
 .card.hot{animation:pop .45s ease;}
 @keyframes pop{0%{transform:scale(1)}40%{transform:scale(1.12)}100%{transform:scale(1)}}
@@ -180,9 +200,9 @@ body.class-view #stageWrap{flex:1 1 100%;}
   display:inline-block; border-radius:20px; padding:clamp(8px,1.2vh,16px) clamp(18px,2.4vw,36px);
   font-size:clamp(20px,2.6vw,42px); color:#fff;
 }
-.label-tag.legend{background:var(--gold); box-shadow:0 8px 0 var(--gold-deep);}
-.label-tag.normal{background:var(--silver); box-shadow:0 8px 0 var(--silver-deep);}
-.label-tag.ask{background:var(--purple); box-shadow:0 8px 0 var(--purple-sh);}
+.label-tag.legend{background:var(--gold); --sh:var(--gold-deep); box-shadow:var(--e2);}
+.label-tag.normal{background:var(--silver); --sh:var(--silver-deep); box-shadow:var(--e2);}
+.label-tag.ask{background:var(--purple); --sh:var(--purple-sh); box-shadow:var(--e2);}
 
 .shelf{
   display:flex; gap:clamp(6px,.8vw,14px); justify-content:center; align-items:center;
@@ -218,9 +238,9 @@ body.class-view .pick{cursor:default; pointer-events:none;}
 .pick.taken{opacity:.3;}
 .pick .add{
   position:absolute; right:-6px; top:-6px; width:30px; height:30px; border-radius:50%;
-  background:var(--green); color:#fff; font-size:19px; line-height:30px; box-shadow:0 4px 0 var(--green-sh);
+  background:var(--green); color:#fff; font-size:19px; line-height:30px; --sh:var(--green-sh); box-shadow:var(--e1);
 }
-.pick.taken .add{background:var(--silver); box-shadow:0 4px 0 var(--silver-deep);}
+.pick.taken .add{background:var(--silver); --sh:var(--silver-deep);}
 
 /* ══════════ 멘토 패널 ══════════ */
 #panel h3{
@@ -231,11 +251,11 @@ body.class-view .pick{cursor:default; pointer-events:none;}
 .panel-head{display:flex; gap:8px; flex-wrap:wrap;}
 .pbtn{
   font-family:inherit; font-size:15px; border:none; cursor:pointer; border-radius:14px;
-  padding:9px 15px; background:#EFEAFF; color:var(--purple-sh); box-shadow:0 4px 0 #D6CCFF;
+  padding:9px 15px; background:#EFEAFF; color:var(--purple-sh); --sh:#D6CCFF; box-shadow:var(--e1);
 }
-.pbtn:active{transform:translateY(3px); box-shadow:0 1px 0 #D6CCFF;}
-.pbtn.go{background:var(--green); color:#fff; box-shadow:0 4px 0 var(--green-sh);}
-.pbtn.warn{background:#FFE7E2; color:var(--red-sh); box-shadow:0 4px 0 #FFC9BE;}
+.pbtn:active{transform:translateY(3px); box-shadow:var(--e-press);}
+.pbtn.go{background:var(--green); color:#fff; --sh:var(--green-sh);}
+.pbtn.warn{background:#FFE7E2; color:var(--red-sh); --sh:#FFC9BE;}
 /* 시계 — 40분 수업에서 페이스가 제일 어렵다. 경과·목표·지금 단계를 한 덩어리로. */
 .clock{
   margin:10px 0 2px; background:#F3F0FF; border-radius:14px; padding:9px 14px;
