@@ -778,10 +778,31 @@ function shelfCards(){
 function renderStage(){
   const key = stageKey();
 
-  // R3 정렬만 바뀐 경우엔 DOM을 유지하고 자리만 옮긴다(움직임이 보여야 한다)
-  if (key === lastKey){ patchSort(); return; }
+  // 같은 화면 안에서 일부만 바뀌는 경우엔 DOM을 유지하고 그 부분만 고친다
+  if (key === lastKey){ patchSort(); patchChant(); return; }
   lastKey = key;
   swapStage(stageHTML());
+}
+
+/* 외치기 제자리 갱신 — 도트와 숫자만 바꾼다.
+   외치는 단어는 화면에서 미동도 하지 않아야 한다.
+   아이들 눈이 화면에 붙으면 목소리가 죽고, 이 활동은 소리가 커져야 걸린다. */
+function patchChant(){
+  if (S.part !== 1 || S.cphase !== "chant" || S.curtain) return;
+  const c = CHANTS[S.ci];
+
+  const counter = stage.querySelector(".counter");
+  if (counter){
+    let dots = "";
+    for (let i = 0; i < c.times; i++){
+      const on = i < S.count;
+      dots += `<i class="${on ? "on" : ""}${on && i === S.count - 1 ? " new" : ""}"></i>`;
+    }
+    counter.innerHTML = dots;
+  }
+
+  const num = stage.querySelector(".count-num");
+  if (num) num.textContent = `${S.count} / ${c.times}`;
 }
 
 /* 장면 전환 — 나가는 화면을 잠깐 밀어내고 새 화면을 아래에서 들여온다.
@@ -832,15 +853,6 @@ function swapStage(html){
 
 /* 장면별 추가 연출. 붙잡아 둔 at 을 쓴다 — 지금의 S 를 보면 안 된다. */
 function stageBeat(at){
-  /* 외치기 — 반 전체가 한 번 외칠 때마다 무대가 살짝 내려앉는다.
-     작아야 한다. 크면 멀미가 난다. */
-  if (at.part === 1 && at.cphase === "chant" && at.count > 0){
-    stage.animate(
-      [{ transform:"translateY(0)" }, { transform:"translateY(3px)" }, { transform:"translateY(0)" }],
-      { duration:170, easing:"ease-out" }
-    );
-  }
-
   /* 함정 질문 — 무대가 한 번 흔들린다.
      광과민성 때문에 반복하지 않는다. 딱 한 번, 260ms. */
   if (at.part === 1 && at.cphase === "question"){
@@ -859,7 +871,10 @@ function stageKey(){
   if (S.curtain) return "curtain" + S.part;
   if (S.part === 3) return "end";
   if (S.part === 0) return "title";
-  if (S.part === 1) return `c${S.ci}:${S.cphase}:${S.count}`;
+  /* 외치기는 횟수를 키에 넣지 않는다 — R3 정렬과 같은 이유다.
+     한 번 외칠 때마다 화면을 통째로 갈아엎으면 도트 하나 켜지는 데
+     화면 전체가 다시 조립돼서 정신이 없다. 도트와 숫자만 제자리에서 고친다. */
+  if (S.part === 1) return S.cphase === "chant" ? `c${S.ci}:chant` : `c${S.ci}:${S.cphase}`;
   if (S.round === 3) return "r3";                       // 정렬 상태는 키에 넣지 않는다
   if (S.round === 4) return `r4:${S.picked.length}:${S.fixTested}:${S.fixRevealed}`;
   if (S.round === 2) return `r2:${S.revealed}`;
@@ -1084,7 +1099,7 @@ function r3HTML(){
    먼저 돌면 트랜지션이 통째로 건너뛰어진다(카드가 툭 바뀐다).
    Web Animations API는 타이밍에 기대지 않으므로 그 실패가 없다. */
 function patchSort(){
-  if (S.round !== 3) return;
+  if (S.part !== 2 || S.round !== 3) return;
 
   const before = new Map();
   stage.querySelectorAll(".card[data-id]").forEach(el => {
